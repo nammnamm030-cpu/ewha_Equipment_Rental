@@ -27,11 +27,14 @@ create table if not exists public.rental_requests (
   purpose text not null check (char_length(trim(purpose)) >= 1),
   start_date date not null,
   end_date date not null,
+  request_type text not null default '대여' check (request_type in ('대여', '반납')),
+  return_components_confirmed boolean not null default false,
   status text not null default '신청' check (status in ('신청', '승인', '대여 중', '반납 완료', '거절')),
   note text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  constraint rental_requests_date_order check (end_date >= start_date)
+  constraint rental_requests_date_order check (end_date >= start_date),
+  constraint rental_requests_return_confirmation check (request_type = '대여' or return_components_confirmed = true)
 );
 
 create table if not exists public.notification_outbox (
@@ -131,6 +134,8 @@ begin
         'purpose', new.purpose,
         'start_date', new.start_date,
         'end_date', new.end_date,
+        'request_type', new.request_type,
+        'return_components_confirmed', new.return_components_confirmed,
         'status', new.status,
         'note', new.note
       )

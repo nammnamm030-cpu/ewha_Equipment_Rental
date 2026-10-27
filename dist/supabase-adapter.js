@@ -40,7 +40,9 @@
         purpose: payload.purpose,
         start_date: payload.startDate,
         end_date: payload.endDate,
-        status: "신청"
+        status: "신청",
+        request_type: payload.requestType || "대여",
+        return_components_confirmed: Boolean(payload.returnComponentsConfirmed)
       };
       var requestId = global.crypto && typeof global.crypto.randomUUID === "function" ? global.crypto.randomUUID() : createFallbackUuid();
       requestPayload.id = requestId;
@@ -60,7 +62,7 @@
     },
     async listMyRentalRequests() {
       if (!this.isReady()) return { data: null, error: this.error || "Supabase 설정 없음" };
-      return this.client.from("rental_requests").select("id,requester_name,requester_email,purpose,start_date,end_date,status,note,created_at,rental_request_items(request_id,equipment_id,asset_no_snapshot,equipment_name_snapshot)").order("created_at", { ascending: false });
+      return this.client.from("rental_requests").select("id,requester_name,requester_email,requester_phone,student_number,request_type,return_components_confirmed,purpose,start_date,end_date,status,note,created_at,rental_request_items(request_id,equipment_id,asset_no_snapshot,equipment_name_snapshot)").order("created_at", { ascending: false });
     }
   };
 

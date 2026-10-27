@@ -33,6 +33,7 @@
           <span>대여 바구니</span>
           <span class="basket-count" id="basketCount" aria-label="0개">0</span>
         </button>
+        <button class="return-button" id="returnButton" type="button" aria-haspopup="dialog">반납하기</button>
       </div>
     </header>
 
@@ -44,7 +45,8 @@
             <h1 id="heroTitle">이화여자대학교<br /><em>조형예술대학 기자재 대여</em></h1>
             <p class="hero-description">필요한 장비를 찾고, 가능한 시간을 확인하고, 바로 빌린다.</p>
             <div class="hero-actions">
-              <a class="primary-action" href="#equipment">장비 찾아보기 <span aria-hidden="true">→</span></a>
+              <a class="primary-action" href="#equipment">대여하기 <span aria-hidden="true">→</span></a>
+              <button class="secondary-button hero-return" id="heroReturnButton" type="button">반납하기</button>
               <a class="text-action" href="#guide">처음이신가요? <strong>이용 안내</strong></a>
             </div>
           </div>
@@ -157,6 +159,14 @@
         <button class="icon-button close-dialog" type="button" aria-label="바구니 닫기">×</button>
       </div>
       <div class="basket-body" id="basketBody"></div>
+    </dialog>
+
+    <dialog class="return-dialog" id="returnDialog" aria-labelledby="returnTitle">
+      <div class="dialog-header">
+        <div><p class="section-kicker">RETURN EQUIPMENT</p><h2 id="returnTitle">반납하기</h2></div>
+        <button class="icon-button close-return" type="button" aria-label="반납 화면 닫기">×</button>
+      </div>
+      <div class="return-body" id="returnBody"></div>
     </dialog>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>

@@ -48,6 +48,7 @@ img, svg { display: block; }
 .desktop-nav a::after { position: absolute; right: 0; bottom: -8px; left: 0; height: 2px; content: ""; background: var(--beige); transform: scaleX(0); transition: transform .2s; }
 .desktop-nav a:hover::after, .desktop-nav a:focus-visible::after { transform: scaleX(1); }
 .basket-button { margin-left: 16px; min-height: 44px; display: inline-flex; align-items: center; gap: 9px; padding: 0 14px; cursor: pointer; border: 0; border-radius: 11px; color: white; background: var(--navy-900); font-size: 13px; font-weight: 750; }
+.return-button { min-height: 44px; padding: 0 14px; cursor: pointer; border: 1px solid var(--navy-900); border-radius: 11px; color: var(--navy-900); background: white; font-size: 13px; font-weight: 800; }
 .basket-button svg { width: 19px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .basket-count { min-width: 21px; height: 21px; display: grid; place-items: center; padding: 0 5px; border-radius: 20px; color: var(--navy-950); background: var(--beige); font-size: 11px; font-weight: 900; }
 
@@ -109,7 +110,7 @@ img, svg { display: block; }
 .category-filters { display: flex; gap: 8px; margin: 18px 0 30px; overflow-x: auto; padding: 2px; scrollbar-width: thin; }
 .filter-button { flex: 0 0 auto; padding: 9px 17px; cursor: pointer; border: 1px solid var(--line); border-radius: 99px; background: white; color: #4e5c6d; font-size: 12px; font-weight: 750; }
 .filter-button.active { color: white; border-color: var(--navy-900); background: var(--navy-900); }
-.equipment-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+.equipment-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 22px; }
 .equipment-card { overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius); background: white; transition: transform .25s, box-shadow .25s, border-color .25s; }
 .equipment-card:hover { border-color: #bdcad7; box-shadow: var(--shadow); transform: translateY(-5px); }
 .card-visual { position: relative; height: 205px; display: grid; place-items: center; overflow: hidden; background: var(--visual-bg); }
@@ -154,7 +155,7 @@ img, svg { display: block; }
 
 .rentals-section { background: white; }
 .secondary-button { min-height: 42px; display: inline-flex; align-items: center; justify-content: center; padding: 0 17px; cursor: pointer; border: 1px solid #bcc8d5; border-radius: 9px; color: var(--navy-900); background: white; font-size: 12px; font-weight: 800; }
-.secondary-button:hover { background: var(--blue-100); border-color: #9cb7ce; }
+.secondary-button:hover { background: var(--blue-100); border-color: var(--navy-900); }
 .status-legend { display: flex; justify-content: flex-end; gap: 16px; margin: -10px 0 18px; color: var(--muted); font-size: 10px; }
 .dot { width: 7px; height: 7px; display: inline-block; margin-right: 3px; border-radius: 50%; background: #8a98a8; }
 .dot.applied { background: var(--beige); }.dot.approved { background: var(--green); }.dot.renting { background: var(--green); }.dot.returned { background: var(--brown); }
@@ -194,6 +195,8 @@ dialog::backdrop { background: rgba(5,20,36,.7); backdrop-filter: blur(3px); }
 .detail-submit { width: 100%; margin-top: 5px; }
 
 .basket-dialog { width: min(650px, calc(100% - 28px)); max-height: calc(100vh - 40px); border-radius: 20px; overflow: auto; }
+.return-dialog { width: min(720px, calc(100% - 28px)); max-height: calc(100vh - 40px); border-radius: 20px; overflow: auto; }
+.return-body { padding: 22px 28px 28px; }.return-equipment { display: grid; gap: 8px; margin-bottom: 16px; }.return-equipment select { width: 100%; min-height: 42px; padding: 0 11px; border: 1px solid var(--line); border-radius: 8px; background: white; color: var(--ink); }.component-checklist { display: grid; gap: 8px; padding: 14px; margin: 8px 0 18px; border: 1px solid var(--line); border-radius: 10px; background: var(--beige-soft); }.component-checklist label { display: flex; align-items: center; gap: 8px; font-size: 12px; }.return-submit:disabled { cursor: not-allowed; opacity: .5; }
 .dialog-header { position: sticky; z-index: 2; top: 0; display: flex; align-items: center; justify-content: space-between; padding: 25px 28px 18px; border-bottom: 1px solid var(--line); background: white; }.dialog-header .section-kicker { margin-bottom: 0; }.dialog-header h2 { margin-top: 1px; }
 .basket-body { padding: 22px 28px 28px; }
 .basket-items { display: grid; gap: 10px; }

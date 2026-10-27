@@ -101,6 +101,7 @@ const elements = {
   result: document.querySelector("#resultSummary"), empty: document.querySelector("#emptyState"),
   detailDialog: document.querySelector("#detailDialog"), detailContent: document.querySelector("#detailContent"),
   basketDialog: document.querySelector("#basketDialog"), basketBody: document.querySelector("#basketBody"),
+  returnDialog: document.querySelector("#returnDialog"), returnBody: document.querySelector("#returnBody"),
   basketCount: document.querySelector("#basketCount"), rentalList: document.querySelector("#rentalList"),
   toast: document.querySelector("#toast")
 };
@@ -365,6 +366,71 @@ function renderBasket() {
   applicationForm.addEventListener("submit", submitApplication);
 }
 
+function renderReturn() {
+  const options = equipment.map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.name)} · ${escapeHtml(item.assetNo)}</option>`).join("");
+  elements.returnBody.innerHTML = `<form id="returnForm" novalidate>
+    <div class="return-equipment"><label for="returnEquipment">반납할 장비 <span aria-hidden="true">*</span></label><select id="returnEquipment" name="equipmentId" required>${options}</select></div>
+    <div id="returnComponents" class="component-checklist" aria-live="polite"></div>
+    <div class="student-fields">
+      <div class="field"><label for="returnerName">이름 <span aria-hidden="true">*</span></label><input id="returnerName" name="requesterName" type="text" autocomplete="name" required /></div>
+      <div class="field"><label for="returnerPhone">전화번호 <span aria-hidden="true">*</span></label><input id="returnerPhone" name="requesterPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="010-0000-0000" required /></div>
+      <div class="field"><label for="returnerEmail">학교 이메일 <span aria-hidden="true">*</span></label><input id="returnerEmail" name="requesterEmail" type="email" inputmode="email" placeholder="name@ewha.ac.kr" required /></div>
+      <div class="field"><label for="returnerStudentNumber">학번 <span aria-hidden="true">*</span></label><input id="returnerStudentNumber" name="studentNumber" type="text" inputmode="numeric" maxlength="12" placeholder="6~12자리 숫자" required /></div>
+    </div>
+    <p class="form-error" id="returnError" role="alert"></p>
+    <button class="primary-button return-submit" type="submit">반납 신청하기</button>
+  </form>`;
+  const form = elements.returnBody.querySelector("#returnForm");
+  const select = form.elements.equipmentId;
+  const renderComponents = () => {
+    const item = equipment.find((entry) => entry.id === select.value) || equipment[0];
+    const components = item.components || [];
+    elements.returnBody.querySelector("#returnComponents").innerHTML = components.length
+      ? `<strong>${escapeHtml(item.name)} 구성품을 모두 확인했나요?</strong>${components.map((component, index) => `<label><input type="checkbox" name="component-${index}" value="${escapeHtml(component)}" /> <span>${escapeHtml(component)}</span></label>`).join("")}`
+      : `<strong>확인할 구성품이 없습니다.</strong><label><input type="checkbox" name="component-empty" /> 구성품 없음 확인</label>`;
+  };
+  select.addEventListener("change", renderComponents);
+  renderComponents();
+  form.addEventListener("submit", submitReturn);
+}
+
+async function submitReturn(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const error = form.querySelector("#returnError");
+  const item = equipment.find((entry) => entry.id === form.elements.equipmentId.value);
+  const validation = getStudentValidation();
+  const name = validation.validateName(form.elements.requesterName.value);
+  const phone = validation.validatePhone(form.elements.requesterPhone.value);
+  const email = validation.validateEmail(form.elements.requesterEmail.value);
+  const studentNumber = validation.validateStudentNumber(form.elements.studentNumber.value);
+  const checks = [...form.querySelectorAll(".component-checklist input[type=checkbox]")];
+  const componentsChecked = checks.length > 0 && checks.every((checkbox) => checkbox.checked);
+  const firstError = [name, phone, email, studentNumber].find((result) => !result.valid);
+  if (!item || !componentsChecked || firstError) {
+    error.textContent = firstError ? firstError.message : (componentsChecked ? "반납할 장비를 선택해주세요." : "모든 구성품을 확인한 뒤 반납 신청해주세요.");
+    return;
+  }
+  const submitButton = form.querySelector(".return-submit");
+  submitButton.disabled = true;
+  const adapter = window.BorrowbomSupabase;
+  if (adapter && adapter.isReady()) {
+    const remoteResult = await adapter.createRentalRequest({
+      requestType: "반납", purpose: `${item.name} 반납 신청`, requesterName: name.value, requesterPhone: phone.value,
+      requesterEmail: email.value, studentNumber: studentNumber.value, startDate: new Date().toISOString().slice(0, 10),
+      endDate: new Date().toISOString().slice(0, 10), returnComponentsConfirmed: true,
+      items: [{ equipmentId: item.id, assetNo: item.assetNo, name: item.name }]
+    });
+    if (remoteResult.error) { submitButton.disabled = false; error.textContent = "반납 신청을 저장하지 못했어요. 잠시 후 다시 시도해주세요."; return; }
+  }
+  const application = { id: `RETURN-${Date.now()}`, equipmentId: item.id, name: item.name, symbol: item.symbol, color: item.color, assetNo: item.assetNo, requesterName: name.value, requesterPhone: phone.value, requesterEmail: email.value, studentNumber: studentNumber.value, purpose: "반납 신청", startDate: new Date().toISOString().slice(0, 10), endDate: new Date().toISOString().slice(0, 10), location: item.location, status: "applied", requestType: "반납", returnComponentsConfirmed: true, createdAt: new Date().toISOString() };
+  state.applications = [application, ...state.applications];
+  writeStorage(storageKeys.applications, state.applications);
+  renderRentals();
+  closeDialog(elements.returnDialog);
+  showToast(`${item.name} 반납 신청이 접수되었어요.`);
+}
+
 function getStudentValidation() {
   if (window.BorrowbomStudentValidation) return window.BorrowbomStudentValidation;
   return {
@@ -542,6 +608,8 @@ document.querySelector("#resetFilters").addEventListener("click", () => {
 });
 
 document.querySelector("#basketButton").addEventListener("click", () => { renderBasket(); openDialog(elements.basketDialog); });
+document.querySelector("#returnButton").addEventListener("click", () => { renderReturn(); openDialog(elements.returnDialog); });
+document.querySelector("#heroReturnButton").addEventListener("click", () => { renderReturn(); openDialog(elements.returnDialog); });
 elements.detailDialog.addEventListener("click", (event) => { if (event.target.closest(".close-detail")) closeDialog(elements.detailDialog); });
 elements.basketDialog.addEventListener("click", (event) => {
   if (event.target.closest(".close-dialog")) closeDialog(elements.basketDialog);
@@ -552,8 +620,9 @@ elements.basketDialog.addEventListener("click", (event) => {
   }
   if (event.target.closest(".browse-equipment")) { closeDialog(elements.basketDialog); document.querySelector("#equipment").scrollIntoView({ behavior: "smooth" }); }
 });
+elements.returnDialog.addEventListener("click", (event) => { if (event.target.closest(".close-return")) closeDialog(elements.returnDialog); });
 
-[elements.detailDialog, elements.basketDialog].forEach((dialog) => {
+[elements.detailDialog, elements.basketDialog, elements.returnDialog].forEach((dialog) => {
   dialog.addEventListener("close", () => document.body.classList.remove("modal-open"));
   dialog.addEventListener("click", (event) => {
     const rect = dialog.getBoundingClientRect();
