@@ -1,79 +1,81 @@
 "use strict";
 
-const mockEquipment = [
-  {
-    id: "CAM-01", name: "Sony A7 IV 미러리스", category: "카메라", symbol: "📷", stock: 3, total: 4,
-    description: "수업 촬영과 콘텐츠 제작에 적합한 4K 풀프레임 카메라",
-    location: "미디어관 2층 장비실", deposit: "없음", maxDays: 3, color: "#e8edf1",
-    components: ["바디", "24–70mm 렌즈", "배터리 2개", "충전기", "SD 카드 128GB", "파우치"],
-    caution: "렌즈 교환 시 먼지가 들어가지 않도록 주의하고, 우천 시 야외 사용을 피해주세요."
-  },
-  {
-    id: "CAM-02", name: "Canon EOS R10 키트", category: "카메라", symbol: "📸", stock: 2, total: 2,
-    description: "가벼운 바디와 빠른 AF로 행사·인물 촬영에 좋은 카메라",
-    location: "미디어관 2층 장비실", deposit: "없음", maxDays: 3, color: "#f1ebe5",
-    components: ["바디", "18–45mm 렌즈", "배터리 2개", "충전기", "SD 카드 64GB"],
-    caution: "반납 전 개인 촬영 데이터를 백업하고 메모리 카드를 포맷해주세요."
-  },
-  {
-    id: "PRJ-01", name: "Epson 레이저 프로젝터", category: "프로젝터", symbol: "🖥️", stock: 4, total: 5,
-    description: "4,500안시 Full HD, 밝은 강의실에서도 선명한 이동식 프로젝터",
-    location: "학생회관 1층 기자재실", deposit: "없음", maxDays: 2, color: "#e7f1f5",
-    components: ["본체", "전원 케이블", "HDMI 케이블", "리모컨", "전용 가방"],
-    caution: "사용 후 냉각 팬이 멈춘 뒤 전원 케이블을 분리해주세요."
-  },
-  {
-    id: "AUD-01", name: "JBL EON One Compact", category: "음향", symbol: "🔊", stock: 2, total: 3,
-    description: "충전식 배터리로 야외 행사에도 적합한 휴대용 PA 스피커",
-    location: "대강당 B1 음향실", deposit: "없음", maxDays: 2, color: "#e8eaed",
-    components: ["스피커 본체", "전원 케이블", "XLR 케이블", "스피커 커버"],
-    caution: "물기가 닿지 않는 평탄한 곳에 설치하고 최대 음량을 장시간 사용하지 마세요."
-  },
-  {
-    id: "AUD-02", name: "RØDE Wireless GO II", category: "음향", symbol: "🎤", stock: 0, total: 4,
-    description: "2채널 녹음과 내장 메모리를 지원하는 무선 마이크 세트",
-    location: "미디어관 2층 장비실", deposit: "없음", maxDays: 3, color: "#f0ece9",
-    components: ["송신기 2개", "수신기 1개", "핀마이크 2개", "USB-C 케이블", "파우치"],
-    caution: "송신기와 수신기의 번호를 확인하고 모든 구성품을 함께 반납해주세요."
-  },
-  {
-    id: "LAP-01", name: "MacBook Pro 14형", category: "노트북", symbol: "💻", stock: 1, total: 3,
-    description: "M3 Pro·18GB, 영상 편집과 그래픽 작업을 위한 고성능 노트북",
-    location: "디지털관 3층 헬프데스크", deposit: "학생증 보관", maxDays: 5, color: "#e9eef2",
-    components: ["노트북 본체", "96W 어댑터", "MagSafe 케이블", "파우치", "USB-C 허브"],
-    caution: "개인 Apple ID로 로그인했다면 반납 전 반드시 로그아웃해주세요."
-  },
-  {
-    id: "LAP-02", name: "LG gram 16", category: "노트북", symbol: "💻", stock: 5, total: 6,
-    description: "발표와 문서 작업에 적합한 가벼운 16인치 Windows 노트북",
-    location: "디지털관 3층 헬프데스크", deposit: "학생증 보관", maxDays: 5, color: "#edf0f7",
-    components: ["노트북 본체", "USB-C 충전기", "무선 마우스", "파우치"],
-    caution: "반납 전 개인 파일과 계정 정보를 반드시 삭제해주세요."
-  },
-  {
-    id: "EVT-01", name: "접이식 행사 테이블", category: "행사 장비", symbol: "🪑", stock: 8, total: 10,
-    description: "동아리 행사와 플리마켓에 쉽게 설치하는 1,800mm 접이식 테이블",
-    location: "학생회관 B1 창고", deposit: "없음", maxDays: 2, color: "#f3eee7",
-    components: ["접이식 테이블", "안전 고정클립 2개", "보관 커버"],
-    caution: "2인 1조로 운반하고 다리를 펼 때 손이 끼이지 않도록 주의하세요."
-  },
-  {
-    id: "EVT-02", name: "이동식 X배너 거치대", category: "행사 장비", symbol: "🏳️", stock: 6, total: 6,
-    description: "600×1800mm 배너용 가벼운 알루미늄 접이식 거치대",
-    location: "학생회관 B1 창고", deposit: "없음", maxDays: 3, color: "#e7f0ec",
-    components: ["X배너 거치대", "운반 파우치", "고정 핀 4개"],
-    caution: "야외에서는 바람에 넘어지지 않도록 추가로 고정해주세요."
-  },
-  {
-    id: "ETC-01", name: "DJI RS 3 Mini 짐벌", category: "촬영 보조", symbol: "🎥", stock: 2, total: 2,
-    description: "카메라 무빙 촬영을 위한 경량 3축 손떨림 보정 짐벌",
-    location: "미디어관 2층 장비실", deposit: "없음", maxDays: 3, color: "#edecec",
-    components: ["짐벌 본체", "크래들", "USB-C 케이블", "삼각대 그립", "전용 가방"],
-    caution: "카메라를 장착한 후 반드시 밸런스를 맞춘 다음 전원을 켜주세요."
-  }
+const fallbackEquipment = [
+  {"id":"CAM-2024-001","assetNo":"CAM-2024-001","name":"카메라 · Canon","category":"카메라","symbol":"📷","stock":0,"total":1,"description":"카메라 · Canon · 관리번호 CAM-2024-001","location":"413호","deposit":"없음","maxDays":3,"color":"#e8edf1","components":["카메라 파우치","충전선","배터리 2개","어댑터"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"CAM-2024-002","assetNo":"CAM-2024-002","name":"카메라 · Canon","category":"카메라","symbol":"📷","stock":1,"total":1,"description":"카메라 · Canon · 관리번호 CAM-2024-002","location":"413호","deposit":"없음","maxDays":3,"color":"#e8edf1","components":["카메라 파우치","충전선","배터리 2개","어댑터"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"CAM-2025-003","assetNo":"CAM-2025-003","name":"카메라 · Canon","category":"카메라","symbol":"📷","stock":0,"total":1,"description":"카메라 · Canon · 관리번호 CAM-2025-003","location":"413호","deposit":"없음","maxDays":3,"color":"#e8edf1","components":["카메라 파우치","충전선","배터리 2개","어댑터"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"CAM-2025-004","assetNo":"CAM-2025-004","name":"카메라 · Canon","category":"카메라","symbol":"📷","stock":0,"total":1,"description":"카메라 · Canon · 관리번호 CAM-2025-004","location":"413호","deposit":"없음","maxDays":3,"color":"#e8edf1","components":["카메라 파우치","충전선","배터리 2개","어댑터"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"CAM-2026-005","assetNo":"CAM-2026-005","name":"카메라 · Canon","category":"카메라","symbol":"📷","stock":0,"total":1,"description":"카메라 · Canon · 관리번호 CAM-2026-005","location":"413호","deposit":"없음","maxDays":3,"color":"#e8edf1","components":["카메라 파우치","충전선","배터리 2개","어댑터"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"BIM-2025-001","assetNo":"BIM-2025-001","name":"빔프로젝터 · samsung · 2700안시 SP-G91","category":"빔프로젝터","symbol":"🖥️","stock":1,"total":1,"description":"빔프로젝터 · samsung · 2700안시 SP-G91 · 관리번호 BIM-2025-001","location":"413호","deposit":"없음","maxDays":2,"color":"#e7f1f5","components":["빔프로젝트 박스","빔 본체","연결 코드 선"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"BIM-2026-002","assetNo":"BIM-2026-002","name":"빔프로젝터 · samsung · 2700안시 SP-G91","category":"빔프로젝터","symbol":"🖥️","stock":1,"total":1,"description":"빔프로젝터 · samsung · 2700안시 SP-G91 · 관리번호 BIM-2026-002","location":"413호","deposit":"없음","maxDays":2,"color":"#e7f1f5","components":["빔프로젝트 박스","빔 본체","연결 코드 선"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"BIM-2026-003","assetNo":"BIM-2026-003","name":"빔프로젝터 · samsung · 2700안시 SP-G91","category":"빔프로젝터","symbol":"🖥️","stock":1,"total":1,"description":"빔프로젝터 · samsung · 2700안시 SP-G91 · 관리번호 BIM-2026-003","location":"413호","deposit":"없음","maxDays":2,"color":"#e7f1f5","components":["빔프로젝트 박스","빔 본체","연결 코드 선"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"BIM-2026-004","assetNo":"BIM-2026-004","name":"빔프로젝터 · samsung · 2700안시 SP-G91","category":"빔프로젝터","symbol":"🖥️","stock":1,"total":1,"description":"빔프로젝터 · samsung · 2700안시 SP-G91 · 관리번호 BIM-2026-004","location":"413호","deposit":"없음","maxDays":2,"color":"#e7f1f5","components":["빔프로젝트 박스","빔 본체","연결 코드 선"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"BIM-2026-005","assetNo":"BIM-2026-005","name":"빔프로젝터 · samsung · 2700안시 SP-G91","category":"빔프로젝터","symbol":"🖥️","stock":1,"total":1,"description":"빔프로젝터 · samsung · 2700안시 SP-G91 · 관리번호 BIM-2026-005","location":"413호","deposit":"없음","maxDays":2,"color":"#e7f1f5","components":["빔프로젝트 박스","빔 본체","연결 코드 선"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"BIM-2026-006","assetNo":"BIM-2026-006","name":"빔프로젝터 · samsung · 2700안시 SP-G91","category":"빔프로젝터","symbol":"🖥️","stock":1,"total":1,"description":"빔프로젝터 · samsung · 2700안시 SP-G91 · 관리번호 BIM-2026-006","location":"413호","deposit":"없음","maxDays":2,"color":"#e7f1f5","components":["빔프로젝트 박스","빔 본체","연결 코드 선"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"BIM-2026-007","assetNo":"BIM-2026-007","name":"빔프로젝터 · samsung · 2700안시 SP-G91","category":"빔프로젝터","symbol":"🖥️","stock":1,"total":1,"description":"빔프로젝터 · samsung · 2700안시 SP-G91 · 관리번호 BIM-2026-007","location":"413호","deposit":"없음","maxDays":2,"color":"#e7f1f5","components":["빔프로젝트 박스","빔 본체","연결 코드 선"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"BIM-2026-008","assetNo":"BIM-2026-008","name":"빔프로젝터 · samsung · 2700안시 SP-G91","category":"빔프로젝터","symbol":"🖥️","stock":1,"total":1,"description":"빔프로젝터 · samsung · 2700안시 SP-G91 · 관리번호 BIM-2026-008","location":"413호","deposit":"없음","maxDays":2,"color":"#e7f1f5","components":["빔프로젝트 박스","빔 본체","연결 코드 선"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"BIM-2026-009","assetNo":"BIM-2026-009","name":"빔프로젝터 · panasonic · 7000안시","category":"빔프로젝터","symbol":"🖥️","stock":1,"total":1,"description":"빔프로젝터 · panasonic · 7000안시 · 관리번호 BIM-2026-009","location":"413호","deposit":"없음","maxDays":2,"color":"#e7f1f5","components":["빔프로젝트 박스","빔 본체","연결 코드 선"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"BIM-2026-010","assetNo":"BIM-2026-010","name":"빔프로젝터 · DLP (미니) · 500안시","category":"빔프로젝터","symbol":"🖥️","stock":1,"total":1,"description":"빔프로젝터 · DLP (미니) · 500안시 · 관리번호 BIM-2026-010","location":"413호","deposit":"없음","maxDays":2,"color":"#e7f1f5","components":["빔프로젝트 박스","빔 본체","연결 코드 선"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"BIM-2026-011","assetNo":"BIM-2026-011","name":"빔프로젝터 · DLP (미니) · 500안시","category":"빔프로젝터","symbol":"🖥️","stock":1,"total":1,"description":"빔프로젝터 · DLP (미니) · 500안시 · 관리번호 BIM-2026-011","location":"413호","deposit":"없음","maxDays":2,"color":"#e7f1f5","components":["빔프로젝트 박스","빔 본체","연결 코드 선"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"BIM-2026-012","assetNo":"BIM-2026-012","name":"빔프로젝터 · DLP (미니) · 500안시","category":"빔프로젝터","symbol":"🖥️","stock":1,"total":1,"description":"빔프로젝터 · DLP (미니) · 500안시 · 관리번호 BIM-2026-012","location":"413호","deposit":"없음","maxDays":2,"color":"#e7f1f5","components":["빔프로젝트 박스","빔 본체","연결 코드 선"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"BIM-2026-013","assetNo":"BIM-2026-013","name":"빔프로젝터 · LC-XL200K · 6000안시","category":"빔프로젝터","symbol":"🖥️","stock":1,"total":1,"description":"빔프로젝터 · LC-XL200K · 6000안시 · 관리번호 BIM-2026-013","location":"413호","deposit":"없음","maxDays":2,"color":"#e7f1f5","components":["빔프로젝트 박스","빔 본체","연결 코드 선"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"BIM-2026-014","assetNo":"BIM-2026-014","name":"빔프로젝터 · Epson · 1000안시","category":"빔프로젝터","symbol":"🖥️","stock":1,"total":1,"description":"빔프로젝터 · Epson · 1000안시 · 관리번호 BIM-2026-014","location":"413호","deposit":"없음","maxDays":2,"color":"#e7f1f5","components":["빔프로젝트 박스","빔 본체","연결 코드 선"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"BIM-2026-015","assetNo":"BIM-2026-015","name":"빔프로젝터 · Epson · 1000안시","category":"빔프로젝터","symbol":"🖥️","stock":1,"total":1,"description":"빔프로젝터 · Epson · 1000안시 · 관리번호 BIM-2026-015","location":"413호","deposit":"없음","maxDays":2,"color":"#e7f1f5","components":["빔프로젝트 박스","빔 본체","연결 코드 선"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"TV-2025-001","assetNo":"TV-2025-001","name":"TV 모니터 · samsung · 32인치","category":"TV 모니터","symbol":"📺","stock":1,"total":1,"description":"TV 모니터 · samsung · 32인치 · 관리번호 TV-2025-001","location":"413호","deposit":"없음","maxDays":3,"color":"#e9eef2","components":["TV 박스","TV 본체","연결 코드 선"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"TV-2025-002","assetNo":"TV-2025-002","name":"TV 모니터 · samsung · 32인치","category":"TV 모니터","symbol":"📺","stock":1,"total":1,"description":"TV 모니터 · samsung · 32인치 · 관리번호 TV-2025-002","location":"413호","deposit":"없음","maxDays":3,"color":"#e9eef2","components":["TV 박스","TV 본체","연결 코드 선"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"TV-2025-003","assetNo":"TV-2025-003","name":"TV 모니터 · samsung · 32인치","category":"TV 모니터","symbol":"📺","stock":1,"total":1,"description":"TV 모니터 · samsung · 32인치 · 관리번호 TV-2025-003","location":"413호","deposit":"없음","maxDays":3,"color":"#e9eef2","components":["TV 박스","TV 본체","연결 코드 선"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"TV-2025-004","assetNo":"TV-2025-004","name":"TV 모니터 · samsung · 32인치","category":"TV 모니터","symbol":"📺","stock":1,"total":1,"description":"TV 모니터 · samsung · 32인치 · 관리번호 TV-2025-004","location":"413호","deposit":"없음","maxDays":3,"color":"#e9eef2","components":["TV 박스","TV 본체","연결 코드 선"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"TV-2025-005","assetNo":"TV-2025-005","name":"TV 모니터 · samsung · 32인치","category":"TV 모니터","symbol":"📺","stock":1,"total":1,"description":"TV 모니터 · samsung · 32인치 · 관리번호 TV-2025-005","location":"413호","deposit":"없음","maxDays":3,"color":"#e9eef2","components":["TV 박스","TV 본체","연결 코드 선"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"TV-2025-006","assetNo":"TV-2025-006","name":"TV 모니터 · samsung · 32인치","category":"TV 모니터","symbol":"📺","stock":1,"total":1,"description":"TV 모니터 · samsung · 32인치 · 관리번호 TV-2025-006","location":"413호","deposit":"없음","maxDays":3,"color":"#e9eef2","components":["TV 박스","TV 본체","연결 코드 선"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"TV-2025-007","assetNo":"TV-2025-007","name":"TV 모니터 · samsung · 42인치","category":"TV 모니터","symbol":"📺","stock":1,"total":1,"description":"TV 모니터 · samsung · 42인치 · 관리번호 TV-2025-007","location":"413호","deposit":"없음","maxDays":3,"color":"#e9eef2","components":["TV 박스","TV 본체","연결 코드 선"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"TV-2025-008","assetNo":"TV-2025-008","name":"TV 모니터 · samsung · 55인치","category":"TV 모니터","symbol":"📺","stock":1,"total":1,"description":"TV 모니터 · samsung · 55인치 · 관리번호 TV-2025-008","location":"413호","deposit":"없음","maxDays":3,"color":"#e9eef2","components":["TV 박스","TV 본체","연결 코드 선"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"TV-2025-009","assetNo":"TV-2025-009","name":"TV 모니터 · samsung · 55인치","category":"TV 모니터","symbol":"📺","stock":1,"total":1,"description":"TV 모니터 · samsung · 55인치 · 관리번호 TV-2025-009","location":"413호","deposit":"없음","maxDays":3,"color":"#e9eef2","components":["TV 박스","TV 본체","연결 코드 선"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"TV-2025-010","assetNo":"TV-2025-010","name":"TV 모니터 · samsung · 55인치","category":"TV 모니터","symbol":"📺","stock":1,"total":1,"description":"TV 모니터 · samsung · 55인치 · 관리번호 TV-2025-010","location":"413호","deposit":"없음","maxDays":3,"color":"#e9eef2","components":["TV 박스","TV 본체","연결 코드 선"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"TV-2025-011","assetNo":"TV-2025-011","name":"TV 모니터 · samsung · 65인치","category":"TV 모니터","symbol":"📺","stock":1,"total":1,"description":"TV 모니터 · samsung · 65인치 · 관리번호 TV-2025-011","location":"413호","deposit":"없음","maxDays":3,"color":"#e9eef2","components":["TV 박스","TV 본체","연결 코드 선"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"TV-2025-012","assetNo":"TV-2025-012","name":"TV 모니터 · samsung · 72인치","category":"TV 모니터","symbol":"📺","stock":1,"total":1,"description":"TV 모니터 · samsung · 72인치 · 관리번호 TV-2025-012","location":"413호","deposit":"없음","maxDays":3,"color":"#e9eef2","components":["TV 박스","TV 본체","연결 코드 선"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"TV-2025-013","assetNo":"TV-2025-013","name":"TV 모니터 · samsung · 72인치","category":"TV 모니터","symbol":"📺","stock":1,"total":1,"description":"TV 모니터 · samsung · 72인치 · 관리번호 TV-2025-013","location":"413호","deposit":"없음","maxDays":3,"color":"#e9eef2","components":["TV 박스","TV 본체","연결 코드 선"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"TV-2025-014","assetNo":"TV-2025-014","name":"TV 모니터 · samsung · 72인치","category":"TV 모니터","symbol":"📺","stock":1,"total":1,"description":"TV 모니터 · samsung · 72인치 · 관리번호 TV-2025-014","location":"413호","deposit":"없음","maxDays":3,"color":"#e9eef2","components":["TV 박스","TV 본체","연결 코드 선"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"DIVX-2024-001","assetNo":"DIVX-2024-001","name":"디빅스","category":"디빅스","symbol":"📺","stock":1,"total":1,"description":"디빅스 · 관리번호 DIVX-2024-001","location":"413호","deposit":"없음","maxDays":3,"color":"#f0ece9","components":["디빅스 박스","디빅스 본체","리모컨"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"DIVX-2024-002","assetNo":"DIVX-2024-002","name":"디빅스","category":"디빅스","symbol":"📺","stock":1,"total":1,"description":"디빅스 · 관리번호 DIVX-2024-002","location":"413호","deposit":"없음","maxDays":3,"color":"#f0ece9","components":["디빅스 박스","디빅스 본체","리모컨"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"DIVX-2024-003","assetNo":"DIVX-2024-003","name":"디빅스","category":"디빅스","symbol":"📺","stock":1,"total":1,"description":"디빅스 · 관리번호 DIVX-2024-003","location":"413호","deposit":"없음","maxDays":3,"color":"#f0ece9","components":["디빅스 박스","디빅스 본체","리모컨"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"DIVX-2024-004","assetNo":"DIVX-2024-004","name":"디빅스","category":"디빅스","symbol":"📺","stock":1,"total":1,"description":"디빅스 · 관리번호 DIVX-2024-004","location":"413호","deposit":"없음","maxDays":3,"color":"#f0ece9","components":["디빅스 박스","디빅스 본체","리모컨"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"DIVX-2025-005","assetNo":"DIVX-2025-005","name":"디빅스","category":"디빅스","symbol":"📺","stock":1,"total":1,"description":"디빅스 · 관리번호 DIVX-2025-005","location":"413호","deposit":"없음","maxDays":3,"color":"#f0ece9","components":["디빅스 박스","디빅스 본체","리모컨"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"DIVX-2025-006","assetNo":"DIVX-2025-006","name":"디빅스","category":"디빅스","symbol":"📺","stock":1,"total":1,"description":"디빅스 · 관리번호 DIVX-2025-006","location":"413호","deposit":"없음","maxDays":3,"color":"#f0ece9","components":["디빅스 박스","디빅스 본체","리모컨"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"DIVX-2025-007","assetNo":"DIVX-2025-007","name":"디빅스","category":"디빅스","symbol":"📺","stock":1,"total":1,"description":"디빅스 · 관리번호 DIVX-2025-007","location":"413호","deposit":"없음","maxDays":3,"color":"#f0ece9","components":["디빅스 박스","디빅스 본체","리모컨"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"DIVX-2025-008","assetNo":"DIVX-2025-008","name":"디빅스","category":"디빅스","symbol":"📺","stock":1,"total":1,"description":"디빅스 · 관리번호 DIVX-2025-008","location":"413호","deposit":"없음","maxDays":3,"color":"#f0ece9","components":["디빅스 박스","디빅스 본체","리모컨"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"DIVX-2025-009","assetNo":"DIVX-2025-009","name":"디빅스","category":"디빅스","symbol":"📺","stock":1,"total":1,"description":"디빅스 · 관리번호 DIVX-2025-009","location":"413호","deposit":"없음","maxDays":3,"color":"#f0ece9","components":["디빅스 박스","디빅스 본체","리모컨"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"DIVX-2025-010","assetNo":"DIVX-2025-010","name":"디빅스","category":"디빅스","symbol":"📺","stock":1,"total":1,"description":"디빅스 · 관리번호 DIVX-2025-010","location":"413호","deposit":"없음","maxDays":3,"color":"#f0ece9","components":["디빅스 박스","디빅스 본체","리모컨"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"DIVX-2025-011","assetNo":"DIVX-2025-011","name":"디빅스","category":"디빅스","symbol":"📺","stock":1,"total":1,"description":"디빅스 · 관리번호 DIVX-2025-011","location":"413호","deposit":"없음","maxDays":3,"color":"#f0ece9","components":["디빅스 박스","디빅스 본체","리모컨"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"DIVX-2025-012","assetNo":"DIVX-2025-012","name":"디빅스","category":"디빅스","symbol":"📺","stock":1,"total":1,"description":"디빅스 · 관리번호 DIVX-2025-012","location":"413호","deposit":"없음","maxDays":3,"color":"#f0ece9","components":["디빅스 박스","디빅스 본체","리모컨"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"DIVX-2025-013","assetNo":"DIVX-2025-013","name":"디빅스","category":"디빅스","symbol":"📺","stock":1,"total":1,"description":"디빅스 · 관리번호 DIVX-2025-013","location":"413호","deposit":"없음","maxDays":3,"color":"#f0ece9","components":["디빅스 박스","디빅스 본체","리모컨"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"DIVX-2025-014","assetNo":"DIVX-2025-014","name":"디빅스","category":"디빅스","symbol":"📺","stock":1,"total":1,"description":"디빅스 · 관리번호 DIVX-2025-014","location":"413호","deposit":"없음","maxDays":3,"color":"#f0ece9","components":["디빅스 박스","디빅스 본체","리모컨"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"BRK-2024-001","assetNo":"BRK-2024-001","name":"브라켓 · 소형","category":"브라켓","symbol":"🪑","stock":1,"total":1,"description":"브라켓 · 소형 · 관리번호 BRK-2024-001","location":"413호","deposit":"없음","maxDays":2,"color":"#f3eee7","components":["브라켓 박스","브라켓"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"BRK-2024-002","assetNo":"BRK-2024-002","name":"브라켓 · 소형","category":"브라켓","symbol":"🪑","stock":1,"total":1,"description":"브라켓 · 소형 · 관리번호 BRK-2024-002","location":"413호","deposit":"없음","maxDays":2,"color":"#f3eee7","components":["브라켓 박스","브라켓"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"BRK-2024-003","assetNo":"BRK-2024-003","name":"브라켓 · 소형","category":"브라켓","symbol":"🪑","stock":1,"total":1,"description":"브라켓 · 소형 · 관리번호 BRK-2024-003","location":"413호","deposit":"없음","maxDays":2,"color":"#f3eee7","components":["브라켓 박스","브라켓"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"BRK-2024-004","assetNo":"BRK-2024-004","name":"브라켓 · 소형","category":"브라켓","symbol":"🪑","stock":1,"total":1,"description":"브라켓 · 소형 · 관리번호 BRK-2024-004","location":"413호","deposit":"없음","maxDays":2,"color":"#f3eee7","components":["브라켓 박스","브라켓"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"BRK-2024-005","assetNo":"BRK-2024-005","name":"브라켓 · 소형","category":"브라켓","symbol":"🪑","stock":1,"total":1,"description":"브라켓 · 소형 · 관리번호 BRK-2024-005","location":"413호","deposit":"없음","maxDays":2,"color":"#f3eee7","components":["브라켓 박스","브라켓"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"BRK-2024-006","assetNo":"BRK-2024-006","name":"브라켓 · 소형","category":"브라켓","symbol":"🪑","stock":1,"total":1,"description":"브라켓 · 소형 · 관리번호 BRK-2024-006","location":"413호","deposit":"없음","maxDays":2,"color":"#f3eee7","components":["브라켓 박스","브라켓"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"BRK-2024-007","assetNo":"BRK-2024-007","name":"브라켓 · 소형","category":"브라켓","symbol":"🪑","stock":1,"total":1,"description":"브라켓 · 소형 · 관리번호 BRK-2024-007","location":"413호","deposit":"없음","maxDays":2,"color":"#f3eee7","components":["브라켓 박스","브라켓"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"BRK-2024-008","assetNo":"BRK-2024-008","name":"브라켓 · 소형","category":"브라켓","symbol":"🪑","stock":1,"total":1,"description":"브라켓 · 소형 · 관리번호 BRK-2024-008","location":"413호","deposit":"없음","maxDays":2,"color":"#f3eee7","components":["브라켓 박스","브라켓"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"BRK-2024-009","assetNo":"BRK-2024-009","name":"브라켓 · 중형","category":"브라켓","symbol":"🪑","stock":1,"total":1,"description":"브라켓 · 중형 · 관리번호 BRK-2024-009","location":"413호","deposit":"없음","maxDays":2,"color":"#f3eee7","components":["브라켓 박스","브라켓"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"BRK-2024-010","assetNo":"BRK-2024-010","name":"브라켓 · 중형","category":"브라켓","symbol":"🪑","stock":1,"total":1,"description":"브라켓 · 중형 · 관리번호 BRK-2024-010","location":"413호","deposit":"없음","maxDays":2,"color":"#f3eee7","components":["브라켓 박스","브라켓"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"BRK-2024-011","assetNo":"BRK-2024-011","name":"브라켓 · 중형","category":"브라켓","symbol":"🪑","stock":1,"total":1,"description":"브라켓 · 중형 · 관리번호 BRK-2024-011","location":"413호","deposit":"없음","maxDays":2,"color":"#f3eee7","components":["브라켓 박스","브라켓"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"BRK-2024-012","assetNo":"BRK-2024-012","name":"브라켓 · 중형","category":"브라켓","symbol":"🪑","stock":1,"total":1,"description":"브라켓 · 중형 · 관리번호 BRK-2024-012","location":"413호","deposit":"없음","maxDays":2,"color":"#f3eee7","components":["브라켓 박스","브라켓"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"BRK-2024-013","assetNo":"BRK-2024-013","name":"브라켓 · 중형","category":"브라켓","symbol":"🪑","stock":1,"total":1,"description":"브라켓 · 중형 · 관리번호 BRK-2024-013","location":"413호","deposit":"없음","maxDays":2,"color":"#f3eee7","components":["브라켓 박스","브라켓"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"BRK-2025-014","assetNo":"BRK-2025-014","name":"브라켓 · samsung · 대형","category":"브라켓","symbol":"🪑","stock":1,"total":1,"description":"브라켓 · samsung · 대형 · 관리번호 BRK-2025-014","location":"413호","deposit":"없음","maxDays":2,"color":"#f3eee7","components":["브라켓 박스","브라켓"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"BRK-2025-015","assetNo":"BRK-2025-015","name":"브라켓 · samsung · 대형","category":"브라켓","symbol":"🪑","stock":1,"total":1,"description":"브라켓 · samsung · 대형 · 관리번호 BRK-2025-015","location":"413호","deposit":"없음","maxDays":2,"color":"#f3eee7","components":["브라켓 박스","브라켓"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"BRK-2025-016","assetNo":"BRK-2025-016","name":"브라켓 · samsung · 대형","category":"브라켓","symbol":"🪑","stock":1,"total":1,"description":"브라켓 · samsung · 대형 · 관리번호 BRK-2025-016","location":"413호","deposit":"없음","maxDays":2,"color":"#f3eee7","components":["브라켓 박스","브라켓"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"BRK-2025-017","assetNo":"BRK-2025-017","name":"브라켓 · samsung · 대형","category":"브라켓","symbol":"🪑","stock":1,"total":1,"description":"브라켓 · samsung · 대형 · 관리번호 BRK-2025-017","location":"413호","deposit":"없음","maxDays":2,"color":"#f3eee7","components":["브라켓 박스","브라켓"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"BRK-2025-018","assetNo":"BRK-2025-018","name":"브라켓 · samsung · 대형","category":"브라켓","symbol":"🪑","stock":1,"total":1,"description":"브라켓 · samsung · 대형 · 관리번호 BRK-2025-018","location":"413호","deposit":"없음","maxDays":2,"color":"#f3eee7","components":["브라켓 박스","브라켓"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"BRK-2025-019","assetNo":"BRK-2025-019","name":"브라켓 · samsung · 대형","category":"브라켓","symbol":"🪑","stock":1,"total":1,"description":"브라켓 · samsung · 대형 · 관리번호 BRK-2025-019","location":"413호","deposit":"없음","maxDays":2,"color":"#f3eee7","components":["브라켓 박스","브라켓"],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"HDMI-2024-001","assetNo":"HDMI-2024-001","name":"HDMI 선","category":"HDMI 선","symbol":"🔌","stock":1,"total":1,"description":"HDMI 선 · 관리번호 HDMI-2024-001","location":"413호","deposit":"없음","maxDays":5,"color":"#e7f0ec","components":[],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"HDMI-2024-002","assetNo":"HDMI-2024-002","name":"HDMI 선","category":"HDMI 선","symbol":"🔌","stock":1,"total":1,"description":"HDMI 선 · 관리번호 HDMI-2024-002","location":"413호","deposit":"없음","maxDays":5,"color":"#e7f0ec","components":[],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"HDMI-2024-003","assetNo":"HDMI-2024-003","name":"HDMI 선","category":"HDMI 선","symbol":"🔌","stock":1,"total":1,"description":"HDMI 선 · 관리번호 HDMI-2024-003","location":"413호","deposit":"없음","maxDays":5,"color":"#e7f0ec","components":[],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"HDMI-2024-004","assetNo":"HDMI-2024-004","name":"HDMI 선","category":"HDMI 선","symbol":"🔌","stock":1,"total":1,"description":"HDMI 선 · 관리번호 HDMI-2024-004","location":"413호","deposit":"없음","maxDays":5,"color":"#e7f0ec","components":[],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."},
+  {"id":"HDMI-2024-005","assetNo":"HDMI-2024-005","name":"HDMI 선","category":"HDMI 선","symbol":"🔌","stock":1,"total":1,"description":"HDMI 선 · 관리번호 HDMI-2024-005","location":"413호","deposit":"없음","maxDays":5,"color":"#e7f0ec","components":[],"caution":"사용 후 구성품을 확인하고 보관 장소에 반납해주세요."}
 ];
 
-let equipment = mockEquipment;
+let equipment = fallbackEquipment;
 let categories = ["전체", ...new Set(equipment.map((item) => item.category))];
 const storageKeys = { cart: "borrowbom-cart-v1", applications: "borrowbom-applications-v1" };
 const statusLabels = { applied: "신청", approved: "승인", renting: "대여 중", returned: "반납 완료" };
