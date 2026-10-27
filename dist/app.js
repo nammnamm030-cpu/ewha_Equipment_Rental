@@ -1,6 +1,6 @@
 "use strict";
 
-const equipment = [
+const mockEquipment = [
   {
     id: "CAM-01", name: "Sony A7 IV 미러리스", category: "카메라", symbol: "📷", stock: 3, total: 4,
     description: "수업 촬영과 콘텐츠 제작에 적합한 4K 풀프레임 카메라",
@@ -73,7 +73,8 @@ const equipment = [
   }
 ];
 
-const categories = ["전체", ...new Set(equipment.map((item) => item.category))];
+let equipment = mockEquipment;
+let categories = ["전체", ...new Set(equipment.map((item) => item.category))];
 const storageKeys = { cart: "borrowbom-cart-v1", applications: "borrowbom-applications-v1" };
 const statusLabels = { applied: "신청", approved: "승인", renting: "대여 중", returned: "반납 완료" };
 
@@ -146,6 +147,59 @@ function showToast(message) {
   elements.toast.classList.add("show");
   window.clearTimeout(showToast.timer);
   showToast.timer = window.setTimeout(() => elements.toast.classList.remove("show"), 2800);
+}
+
+const remoteVisuals = {
+  "카메라": { symbol: "📷", color: "#e8edf1", maxDays: 3 },
+  "빔프로젝터": { symbol: "🖥️", color: "#e7f1f5", maxDays: 2 },
+  "TV 모니터": { symbol: "📺", color: "#e9eef2", maxDays: 3 },
+  "디빅스": { symbol: "📺", color: "#f0ece9", maxDays: 3 },
+  "브라켓": { symbol: "🪑", color: "#f3eee7", maxDays: 2 },
+  "HDMI 선": { symbol: "🔌", color: "#e7f0ec", maxDays: 5 }
+};
+
+function normalizeRemoteEquipment(row) {
+  const visual = remoteVisuals[row.equipment_type] || { symbol: "📦", color: "#edf2f6", maxDays: 3 };
+  const displayParts = [row.model_name, row.spec].filter(Boolean);
+  const name = displayParts.length ? `${row.equipment_type} · ${displayParts.join(" ")}` : row.equipment_type;
+  return {
+    id: row.id,
+    assetNo: row.asset_no,
+    name,
+    category: row.equipment_type,
+    symbol: visual.symbol,
+    stock: row.status === "대출 가능" ? 1 : 0,
+    total: 1,
+    description: row.description || `${name} · 관리번호 ${row.asset_no}`,
+    location: row.storage_location,
+    deposit: "없음",
+    maxDays: visual.maxDays,
+    color: visual.color,
+    components: Array.isArray(row.components) ? row.components : [],
+    caution: "사용 후 구성품을 확인하고 보관 장소에 반납해주세요."
+  };
+}
+
+async function initializeSupabaseEquipment() {
+  const adapter = window.BorrowbomSupabase;
+  if (!adapter) return;
+  try {
+    await adapter.initialize(window.BORROWBOM_SUPABASE_CONFIG);
+    if (!adapter.isReady()) return;
+    const result = await adapter.listEquipment();
+    if (result.error || !Array.isArray(result.data) || result.data.length === 0) {
+      showToast("Supabase 장비를 불러오지 못해 목업 데이터를 표시합니다.");
+      return;
+    }
+    equipment = result.data.map(normalizeRemoteEquipment);
+    categories = ["전체", ...new Set(equipment.map((item) => item.category))];
+    state.category = "전체";
+    renderFilters();
+    renderEquipment();
+    document.querySelector("#totalEquipment").textContent = equipment.length;
+  } catch (_) {
+    showToast("Supabase 연결을 준비하지 못해 목업 데이터를 표시합니다.");
+  }
 }
 
 function renderFilters() {
@@ -255,7 +309,7 @@ function addToCart(event, item) {
     return;
   }
   error.textContent = "";
-  const cartEntry = { equipmentId: item.id, startDate, endDate };
+  const cartEntry = { equipmentId: item.id, assetNo: item.assetNo || item.id, name: item.name, startDate, endDate };
   const existingIndex = state.cart.findIndex((entry) => entry.equipmentId === item.id);
   if (existingIndex >= 0) state.cart[existingIndex] = cartEntry;
   else state.cart.push(cartEntry);
@@ -297,7 +351,7 @@ function renderBasket() {
   elements.basketBody.querySelector("#applicationForm").addEventListener("submit", submitApplication);
 }
 
-function submitApplication(event) {
+async function submitApplication(event) {
   event.preventDefault();
   const purpose = event.currentTarget.elements.purpose.value.trim();
   const error = event.currentTarget.querySelector("#purposeError");
@@ -306,13 +360,47 @@ function submitApplication(event) {
     event.currentTarget.elements.purpose.focus();
     return;
   }
+  const submitButton = event.currentTarget.querySelector(".submit-application");
+  submitButton.disabled = true;
+  submitButton.textContent = "신청 저장 중…";
+  const requestItems = state.cart.map((entry) => ({
+    ...entry,
+    item: equipment.find((equipmentItem) => equipmentItem.id === entry.equipmentId)
+  })).filter((entry) => entry.item);
+  const adapter = window.BorrowbomSupabase;
+  let remoteRequestId = null;
+  if (adapter && adapter.isReady() && requestItems.length) {
+    const startDate = requestItems.map((entry) => entry.startDate).sort()[0];
+    const endDate = requestItems.map((entry) => entry.endDate).sort().slice(-1)[0];
+    try {
+      const remoteResult = await adapter.createRentalRequest({
+        purpose,
+        startDate,
+        endDate,
+        items: requestItems.map((entry) => ({ equipmentId: entry.item.id, assetNo: entry.item.assetNo || entry.assetNo || entry.item.id, name: entry.item.name }))
+      });
+      if (remoteResult.error) {
+        submitButton.disabled = false;
+        submitButton.textContent = "대여 신청 완료하기";
+        error.textContent = "Supabase에 신청을 저장하지 못했어요. 잠시 후 다시 시도해주세요.";
+        return;
+      }
+      remoteRequestId = remoteResult.data && remoteResult.data.id;
+    } catch (_) {
+      submitButton.disabled = false;
+      submitButton.textContent = "대여 신청 완료하기";
+      error.textContent = "Supabase 연결 중 문제가 발생했어요. 신청 내용은 유지됩니다.";
+      return;
+    }
+  }
   const timestamp = Date.now();
-  const newApplications = state.cart.map((entry, index) => {
+  const newApplications = requestItems.map((entry, index) => {
     const item = equipment.find((equipmentItem) => equipmentItem.id === entry.equipmentId);
     return {
       id: `APP-${timestamp}-${index}`,
       equipmentId: item.id, name: item.name, symbol: item.symbol, color: item.color,
-      startDate: entry.startDate, endDate: entry.endDate, purpose,
+      assetNo: item.assetNo || entry.assetNo || item.id,
+      remoteRequestId, startDate: entry.startDate, endDate: entry.endDate, purpose,
       location: item.location, status: "applied", createdAt: new Date().toISOString()
     };
   });
@@ -401,3 +489,4 @@ renderEquipment();
 renderRentals();
 updateBasketCount();
 document.querySelector("#totalEquipment").textContent = equipment.reduce((sum, item) => sum + item.total, 0);
+initializeSupabaseEquipment();

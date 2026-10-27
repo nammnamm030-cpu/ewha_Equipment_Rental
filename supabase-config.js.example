@@ -1,0 +1,6 @@
+// 실제 프로젝트에서는 이 파일을 supabase-config.js로 복사하고 값을 채워주세요.
+// 이 파일은 레포지토리에 실제 키를 넣지 않는 예시 파일입니다.
+window.BORROWBOM_SUPABASE_CONFIG = {
+  url: "https://YOUR_PROJECT_REF.supabase.co",
+  anonKey: "YOUR_SUPABASE_ANON_KEY"
+};
