@@ -34,7 +34,8 @@
       var requestPayload = {
         requester_id: userId,
         requester_name: payload.requesterName || null,
-        requester_email: payload.requesterEmail || null,
+        requester_email: payload.requesterEmail,
+        student_number: payload.studentNumber,
         purpose: payload.purpose,
         start_date: payload.startDate,
         end_date: payload.endDate,

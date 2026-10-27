@@ -21,7 +21,8 @@ create table if not exists public.rental_requests (
   id uuid primary key default gen_random_uuid(),
   requester_id uuid references auth.users(id) on delete set null,
   requester_name text,
-  requester_email text,
+  requester_email text not null check (lower(trim(requester_email)) ~ '^[^@[:space:]]+@(ewhain\.net|ewha\.ac\.kr)$'),
+  student_number text not null check (regexp_replace(student_number, '[[:space:]]', '', 'g') ~ '^[0-9]{6,12}$'),
   purpose text not null check (char_length(trim(purpose)) >= 1),
   start_date date not null,
   end_date date not null,
@@ -30,6 +31,19 @@ create table if not exists public.rental_requests (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint rental_requests_date_order check (end_date >= start_date)
+);
+
+create table if not exists public.notification_outbox (
+  id uuid primary key default gen_random_uuid(),
+  request_id uuid not null references public.rental_requests(id) on delete cascade,
+  event_type text not null check (event_type in ('request_submitted', 'approved', 'checked_out', 'returned', 'rejected')),
+  recipient_email text not null check (lower(trim(recipient_email)) ~ '^[^@[:space:]]+@(ewhain\.net|ewha\.ac\.kr)$'),
+  payload jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  sent_at timestamptz,
+  attempts integer not null default 0 check (attempts >= 0),
+  last_error text,
+  unique (request_id, event_type)
 );
 
 create table if not exists public.rental_request_items (
@@ -73,10 +87,72 @@ create index if not exists rental_requests_status_idx
   on public.rental_requests (status, start_date);
 create index if not exists rental_request_items_equipment_idx
   on public.rental_request_items (equipment_id);
+create index if not exists notification_outbox_pending_idx
+  on public.notification_outbox (created_at)
+  where sent_at is null;
+create index if not exists notification_outbox_request_idx
+  on public.notification_outbox (request_id, created_at desc);
+
+create or replace function public.enqueue_rental_notification()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  notification_event text;
+begin
+  if tg_op = 'INSERT' then
+    notification_event := 'request_submitted';
+  elsif new.status is distinct from old.status then
+    notification_event := case new.status
+      when '승인' then 'approved'
+      when '대여 중' then 'checked_out'
+      when '반납 완료' then 'returned'
+      when '거절' then 'rejected'
+      else null
+    end;
+  end if;
+
+  if notification_event is not null then
+    insert into public.notification_outbox (request_id, event_type, recipient_email, payload)
+    values (
+      new.id,
+      notification_event,
+      lower(trim(new.requester_email)),
+      jsonb_build_object(
+        'request_id', new.id,
+        'event_type', notification_event,
+        'requester_name', new.requester_name,
+        'requester_email', lower(trim(new.requester_email)),
+        'student_number', regexp_replace(new.student_number, '[[:space:]]', '', 'g'),
+        'purpose', new.purpose,
+        'start_date', new.start_date,
+        'end_date', new.end_date,
+        'status', new.status,
+        'note', new.note
+      )
+    )
+    on conflict (request_id, event_type) do nothing;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists rental_request_notification_insert on public.rental_requests;
+create trigger rental_request_notification_insert
+after insert on public.rental_requests
+for each row execute function public.enqueue_rental_notification();
+
+drop trigger if exists rental_request_notification_status on public.rental_requests;
+create trigger rental_request_notification_status
+after update of status on public.rental_requests
+for each row execute function public.enqueue_rental_notification();
 
 alter table public.equipment enable row level security;
 alter table public.rental_requests enable row level security;
 alter table public.rental_request_items enable row level security;
+alter table public.notification_outbox enable row level security;
 
 drop policy if exists "equipment_public_select" on public.equipment;
 create policy "equipment_public_select"
@@ -121,6 +197,17 @@ with check (
 drop policy if exists "rental_request_items_select_owner" on public.rental_request_items;
 create policy "rental_request_items_select_owner"
 on public.rental_request_items for select
+to authenticated
+using (
+  exists (
+    select 1 from public.rental_requests r
+    where r.id = request_id and r.requester_id = auth.uid()
+  )
+);
+
+drop policy if exists "notification_outbox_select_owner" on public.notification_outbox;
+create policy "notification_outbox_select_owner"
+on public.notification_outbox for select
 to authenticated
 using (
   exists (

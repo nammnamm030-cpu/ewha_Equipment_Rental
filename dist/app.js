@@ -336,6 +336,11 @@ function renderBasket() {
         </div>`).join("")}
     </div>
     <form id="applicationForm" novalidate>
+      <div class="student-fields">
+        <div class="field"><label for="requesterEmail">학교 이메일 <span aria-hidden="true">*</span></label><input id="requesterEmail" name="requesterEmail" type="email" inputmode="email" autocomplete="email" placeholder="name@ewha.ac.kr" required /></div>
+        <div class="field"><label for="studentNumber">학번 <span aria-hidden="true">*</span></label><input id="studentNumber" name="studentNumber" type="text" inputmode="numeric" autocomplete="off" maxlength="12" placeholder="6~12자리 숫자" required /></div>
+      </div>
+      <p class="form-error" id="studentError" role="alert"></p>
       <div class="purpose-field">
         <label for="rentalPurpose">이용 목적 <span aria-hidden="true">*</span></label>
         <textarea id="rentalPurpose" name="purpose" maxlength="100" placeholder="예: 전공 수업 팀 프로젝트 영상 촬영" required></textarea>
@@ -348,7 +353,41 @@ function renderBasket() {
     </form>`;
   const purpose = elements.basketBody.querySelector("#rentalPurpose");
   purpose.addEventListener("input", () => { elements.basketBody.querySelector("#purposeCount").textContent = purpose.value.length; });
-  elements.basketBody.querySelector("#applicationForm").addEventListener("submit", submitApplication);
+  const applicationForm = elements.basketBody.querySelector("#applicationForm");
+  [applicationForm.elements.requesterEmail, applicationForm.elements.studentNumber].forEach((field) => {
+    field.addEventListener("input", () => validateStudentFields(applicationForm, true));
+    field.addEventListener("blur", () => validateStudentFields(applicationForm, true));
+  });
+  applicationForm.addEventListener("submit", submitApplication);
+}
+
+function getStudentValidation() {
+  if (window.BorrowbomStudentValidation) return window.BorrowbomStudentValidation;
+  return {
+    validateEmail(value) {
+      const normalized = String(value || "").trim().toLowerCase();
+      const valid = /^[^@\s]+@(ewhain\.net|ewha\.ac\.kr)$/.test(normalized);
+      return { valid, value: normalized, message: valid ? "" : "이화 학교 이메일(@ewhain.net 또는 @ewha.ac.kr)을 입력해주세요." };
+    },
+    validateStudentNumber(value) {
+      const normalized = String(value || "").replace(/[\s\u00a0]+/g, "");
+      const valid = /^[0-9]{6,12}$/.test(normalized);
+      return { valid, value: normalized, message: valid ? "" : "학번은 공백을 제외한 숫자 6~12자리로 입력해주세요." };
+    }
+  };
+}
+
+function validateStudentFields(form, showMessage) {
+  const validation = getStudentValidation();
+  const emailResult = validation.validateEmail(form.elements.requesterEmail.value);
+  const numberResult = validation.validateStudentNumber(form.elements.studentNumber.value);
+  const error = form.querySelector("#studentError");
+  const emailInput = form.elements.requesterEmail;
+  const numberInput = form.elements.studentNumber;
+  emailInput.setAttribute("aria-invalid", String(!emailResult.valid));
+  numberInput.setAttribute("aria-invalid", String(!numberResult.valid));
+  if (showMessage) error.textContent = emailResult.valid ? (numberResult.valid ? "" : numberResult.message) : emailResult.message;
+  return { valid: emailResult.valid && numberResult.valid, email: emailResult.value, studentNumber: numberResult.value };
 }
 
 async function submitApplication(event) {
@@ -358,6 +397,12 @@ async function submitApplication(event) {
   if (purpose.length < 5) {
     error.textContent = "이용 목적을 5자 이상 입력해주세요.";
     event.currentTarget.elements.purpose.focus();
+    return;
+  }
+  const studentDetails = validateStudentFields(event.currentTarget, true);
+  if (!studentDetails.valid) {
+    if (!studentDetails.email) event.currentTarget.elements.requesterEmail.focus();
+    else if (!studentDetails.studentNumber) event.currentTarget.elements.studentNumber.focus();
     return;
   }
   const submitButton = event.currentTarget.querySelector(".submit-application");
@@ -375,6 +420,8 @@ async function submitApplication(event) {
     try {
       const remoteResult = await adapter.createRentalRequest({
         purpose,
+        requesterEmail: studentDetails.email,
+        studentNumber: studentDetails.studentNumber,
         startDate,
         endDate,
         items: requestItems.map((entry) => ({ equipmentId: entry.item.id, assetNo: entry.item.assetNo || entry.assetNo || entry.item.id, name: entry.item.name }))
@@ -400,7 +447,8 @@ async function submitApplication(event) {
       id: `APP-${timestamp}-${index}`,
       equipmentId: item.id, name: item.name, symbol: item.symbol, color: item.color,
       assetNo: item.assetNo || entry.assetNo || item.id,
-      remoteRequestId, startDate: entry.startDate, endDate: entry.endDate, purpose,
+      remoteRequestId, requesterEmail: studentDetails.email, studentNumber: studentDetails.studentNumber,
+      startDate: entry.startDate, endDate: entry.endDate, purpose,
       location: item.location, status: "applied", createdAt: new Date().toISOString()
     };
   });
@@ -412,7 +460,10 @@ async function submitApplication(event) {
   renderRentals();
   closeDialog(elements.basketDialog);
   document.querySelector("#my-rentals").scrollIntoView({ behavior: "smooth", block: "start" });
-  showToast(`대여 신청 ${newApplications.length}건이 접수되었어요.`);
+  const mailNotice = adapter && adapter.isReady()
+    ? `알림 메일은 ${studentDetails.email}로 notification_outbox에 기록되어 Edge Function이 발송해요.`
+    : `Supabase 연결 후 ${studentDetails.email}로 notification_outbox·Edge Function 메일이 발송됩니다.`;
+  showToast(`대여 신청 ${newApplications.length}건이 접수되었어요. ${mailNotice}`);
 }
 
 function renderRentals() {
