@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#122d4f" />
+    <meta name="description" content="학교 기자재를 빠르고 편리하게 찾고 신청하는 빌려봄" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23122d4f'/%3E%3Cpath d='M18 19h28v28H18zM25 19v-5h14v5M25 29h14M25 36h9' fill='none' stroke='white' stroke-width='4' stroke-linejoin='round'/%3E%3C/svg%3E" />
+    <title>빌려봄 | 학교 기자재 대여</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">본문으로 바로가기</a>
+
+    <header class="site-header">
+      <div class="header-inner">
+        <a class="brand" href="#home" aria-label="빌려봄 홈">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 32 32"><path d="M8 8.5h16v15H8z"/><path d="M12 8.5V6h8v2.5M12 14h8M12 18h5"/></svg>
+          </span>
+          <span class="brand-copy"><strong>빌려봄</strong><small>CAMPUS RENTAL</small></span>
+        </a>
+        <nav class="desktop-nav" aria-label="주요 메뉴">
+          <a href="#equipment">장비 찾기</a>
+          <a href="#guide">이용 안내</a>
+          <a href="#my-rentals">나의 대여</a>
+        </nav>
+        <button class="basket-button" id="basketButton" type="button" aria-haspopup="dialog">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 4h2l2.2 10.2a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.6L20 8H7M10 20h.01M17 20h.01"/></svg>
+          <span>대여 바구니</span>
+          <span class="basket-count" id="basketCount" aria-label="0개">0</span>
+        </button>
+      </div>
+    </header>
+
+    <main id="main-content">
+      <section class="hero" id="home" aria-labelledby="heroTitle">
+        <div class="hero-inner">
+          <div class="hero-copy">
+            <p class="eyebrow"><span></span> 우리 학교 공용 기자재 대여</p>
+            <h1 id="heroTitle">필요한 순간,<br /><em>장비는 가깝게.</em></h1>
+            <p class="hero-description">필요한 장비를 찾고, 가능한 시간을 확인하고, 바로 빌린다.</p>
+            <div class="hero-actions">
+              <a class="primary-action" href="#equipment">장비 찾아보기 <span aria-hidden="true">→</span></a>
+              <a class="text-action" href="#guide">처음이신가요? <strong>이용 안내</strong></a>
+            </div>
+          </div>
+          <div class="hero-visual" aria-label="대여 가능한 카메라와 프로젝터 이미지">
+            <div class="availability-pill"><span></span> 오늘 대여 가능</div>
+            <div class="visual-ring ring-one"></div>
+            <div class="visual-ring ring-two"></div>
+            <div class="projector-art" aria-hidden="true">
+              <div class="projector-lens"></div><div class="projector-line"></div>
+            </div>
+            <div class="camera-art" aria-hidden="true">
+              <div class="camera-top"></div><div class="camera-lens"><span></span></div><div class="camera-flash"></div>
+            </div>
+            <div class="hero-note">
+              <strong>실시간 재고 확인</strong>
+              <span>신청 전 수량과 수령 장소를 확인해요</span>
+            </div>
+          </div>
+        </div>
+        <div class="trust-bar" aria-label="서비스 현황">
+          <div><strong id="totalEquipment">48</strong><span>대여 장비</span></div>
+          <div><strong>6</strong><span>장비 카테고리</span></div>
+          <div><strong>3분</strong><span>평균 신청 시간</span></div>
+          <div><strong>09–18시</strong><span>평일 수령 가능</span></div>
+        </div>
+      </section>
+
+      <section class="equipment-section" id="equipment" aria-labelledby="equipmentTitle">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker">EQUIPMENT</p>
+            <h2 id="equipmentTitle">오늘, 무엇을 빌려볼까요?</h2>
+            <p>수업부터 동아리, 학교 행사까지 필요한 장비를 찾아보세요.</p>
+          </div>
+          <p class="result-summary" id="resultSummary" aria-live="polite"></p>
+        </div>
+
+        <div class="search-panel" role="search">
+          <label class="search-box" for="searchInput">
+            <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+            <span class="sr-only">장비명 또는 키워드 검색</span>
+            <input id="searchInput" type="search" placeholder="장비명, 용도를 검색해보세요" autocomplete="off" />
+          </label>
+          <label class="availability-toggle">
+            <input id="availableOnly" type="checkbox" />
+            <span class="toggle-track" aria-hidden="true"><span></span></span>
+            대여 가능만
+          </label>
+        </div>
+        <div class="category-filters" id="categoryFilters" aria-label="장비 카테고리"></div>
+        <div class="equipment-grid" id="equipmentGrid"></div>
+        <div class="empty-state" id="emptyState" hidden>
+          <span aria-hidden="true">⌕</span>
+          <h3>검색 결과가 없어요</h3>
+          <p>다른 검색어나 카테고리를 선택해 보세요.</p>
+          <button id="resetFilters" class="secondary-button" type="button">필터 초기화</button>
+        </div>
+      </section>
+
+      <section class="guide-section" id="guide" aria-labelledby="guideTitle">
+        <div class="guide-intro">
+          <p class="section-kicker light">HOW IT WORKS</p>
+          <h2 id="guideTitle">대여부터 반납까지,<br />다섯 가지 단계면 돼요.</h2>
+          <p>복잡한 절차 없이, 학생증 하나면 준비 완료예요.</p>
+          <div class="prep-card">
+            <span aria-hidden="true">✓</span>
+            <div><strong>수령 전 준비해요</strong><p>본인 확인을 위한 학생증 또는 교직원증</p></div>
+          </div>
+        </div>
+        <ol class="steps-list">
+          <li><span class="step-number">01</span><div class="step-icon" aria-hidden="true">⌕</div><div><strong>장비 찾기</strong><p>필요한 장비를 검색하고 재고를 확인해요.</p></div></li>
+          <li><span class="step-number">02</span><div class="step-icon" aria-hidden="true">✓</div><div><strong>신청하기</strong><p>대여 기간과 이용 목적을 입력해요.</p></div></li>
+          <li><span class="step-number">03</span><div class="step-icon" aria-hidden="true">○</div><div><strong>승인 기다리기</strong><p>담당자 확인 후 알림으로 결과를 알려드려요.</p></div></li>
+          <li><span class="step-number">04</span><div class="step-icon" aria-hidden="true">→</div><div><strong>수령하고 사용하기</strong><p>학생증을 들고 안내된 장소로 방문해요.</p></div></li>
+          <li><span class="step-number">05</span><div class="step-icon" aria-hidden="true">↵</div><div><strong>기한 내 반납하기</strong><p>구성품을 확인하고 약속한 시간까지 반납해요.</p></div></li>
+        </ol>
+      </section>
+
+      <section class="rentals-section" id="my-rentals" aria-labelledby="rentalsTitle">
+        <div class="section-heading rentals-heading">
+          <div>
+            <p class="section-kicker">MY RENTALS</p>
+            <h2 id="rentalsTitle">나의 대여</h2>
+            <p>신청한 장비와 진행 상태를 한눈에 확인하세요.</p>
+          </div>
+          <a class="secondary-button" href="#equipment">새 장비 빌리기</a>
+        </div>
+        <div class="status-legend" aria-label="대여 상태 안내">
+          <span><i class="dot applied"></i> 신청</span><span><i class="dot approved"></i> 승인</span><span><i class="dot renting"></i> 대여 중</span><span><i class="dot returned"></i> 반납 완료</span>
+        </div>
+        <div class="rental-list" id="rentalList"></div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="footer-inner">
+        <div><a class="brand footer-brand" href="#home"><span class="brand-mark" aria-hidden="true">□</span><span class="brand-copy"><strong>빌려봄</strong><small>CAMPUS RENTAL</small></span></a><p>학교 구성원의 배움과 창작을 위한 기자재 대여 서비스</p></div>
+        <div class="footer-contact"><strong>문의 및 운영</strong><span>평일 09:00–18:00 · 점심 12:00–13:00</span><span>학생회관 1층 기자재실 · 02-1234-5678</span></div>
+      </div>
+      <p class="copyright">© 2026 빌려봄. 안전하고 즐거운 학교 생활을 위해 함께합니다.</p>
+    </footer>
+
+    <dialog class="detail-dialog" id="detailDialog" aria-labelledby="detailTitle">
+      <div id="detailContent"></div>
+    </dialog>
+
+    <dialog class="basket-dialog" id="basketDialog" aria-labelledby="basketTitle">
+      <div class="dialog-header">
+        <div><p class="section-kicker">RENTAL CART</p><h2 id="basketTitle">대여 바구니</h2></div>
+        <button class="icon-button close-dialog" type="button" aria-label="바구니 닫기">×</button>
+      </div>
+      <div class="basket-body" id="basketBody"></div>
+    </dialog>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </body>
+</html>
