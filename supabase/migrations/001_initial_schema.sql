@@ -1,4 +1,4 @@
--- 이화 조형예대 장비 대여 Supabase 초기 스키마
+-- 이화여자대학교 조형예술대학 장비대여 Supabase 초기 스키마
 -- 적용: Supabase SQL Editor에서 이 파일을 전체 실행합니다.
 
 create extension if not exists pgcrypto;

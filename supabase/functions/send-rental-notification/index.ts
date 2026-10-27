@@ -1,11 +1,11 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 
 const eventCopy = {
-  request_submitted: { subject: "[이화 조형예대 장비 대여] 대여 신청이 접수되었어요", lead: "기자재 대여 신청이 접수되었습니다." },
-  approved: { subject: "[이화 조형예대 장비 대여] 대여 신청이 승인되었어요", lead: "신청하신 기자재 대여가 승인되었습니다." },
-  checked_out: { subject: "[이화 조형예대 장비 대여] 대여가 시작되었어요", lead: "기자재 대여가 시작되었습니다." },
-  returned: { subject: "[이화 조형예대 장비 대여] 반납이 완료되었어요", lead: "기자재 반납 처리가 완료되었습니다." },
-  rejected: { subject: "[이화 조형예대 장비 대여] 대여 신청 결과를 확인해주세요", lead: "기자재 대여 신청이 거절되었습니다." }
+  request_submitted: { subject: "[이화여자대학교 조형예술대학 장비대여] 대여 신청이 접수되었어요", lead: "장비대여 신청이 접수되었습니다." },
+  approved: { subject: "[이화여자대학교 조형예술대학 장비대여] 대여 신청이 승인되었어요", lead: "신청하신 장비대여가 승인되었습니다." },
+  checked_out: { subject: "[이화여자대학교 조형예술대학 장비대여] 대여가 시작되었어요", lead: "장비대여가 시작되었습니다." },
+  returned: { subject: "[이화여자대학교 조형예술대학 장비대여] 반납이 완료되었어요", lead: "장비 반납 처리가 완료되었습니다." },
+  rejected: { subject: "[이화여자대학교 조형예술대학 장비대여] 대여 신청 결과를 확인해주세요", lead: "장비대여 신청이 거절되었습니다." }
 };
 
 function json(body, status = 200) {
@@ -33,8 +33,8 @@ function buildMessage(record) {
   const startDate = text(payload.start_date);
   const endDate = text(payload.end_date);
   const note = text(payload.note, "별도 안내 없음");
-  const plainText = `${requesterName}님,\n\n${copy.lead}\n\n이용 목적: ${purpose}\n대여 기간: ${startDate} ~ ${endDate}\n안내: ${note}\n\n이화 조형예대 장비 대여 드림`;
-  const html = `<div style="font-family:Arial,sans-serif;line-height:1.7;color:#19150f"><h2>${htmlEscape(copy.subject)}</h2><p>${htmlEscape(requesterName)}님,</p><p>${htmlEscape(copy.lead)}</p><dl><dt>이용 목적</dt><dd>${htmlEscape(purpose)}</dd><dt>대여 기간</dt><dd>${htmlEscape(startDate)} ~ ${htmlEscape(endDate)}</dd><dt>안내</dt><dd>${htmlEscape(note)}</dd></dl><p>이화 조형예대 장비 대여 드림</p></div>`;
+  const plainText = `${requesterName}님,\n\n${copy.lead}\n\n이용 목적: ${purpose}\n대여 기간: ${startDate} ~ ${endDate}\n안내: ${note}\n\n이화여자대학교 조형예술대학 장비대여 드림`;
+  const html = `<div style="font-family:Arial,sans-serif;line-height:1.7;color:#19150f"><h2>${htmlEscape(copy.subject)}</h2><p>${htmlEscape(requesterName)}님,</p><p>${htmlEscape(copy.lead)}</p><dl><dt>이용 목적</dt><dd>${htmlEscape(purpose)}</dd><dt>대여 기간</dt><dd>${htmlEscape(startDate)} ~ ${htmlEscape(endDate)}</dd><dt>안내</dt><dd>${htmlEscape(note)}</dd></dl><p>이화여자대학교 조형예술대학 장비대여 드림</p></div>`;
   return { subject: copy.subject, plainText, html };
 }
 
