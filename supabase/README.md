@@ -1,4 +1,4 @@
-# 빌려봄 Supabase 적용 안내
+# 이화 조형예대 장비 대여 Supabase 적용 안내
 
 ## 적용 순서
 
@@ -28,7 +28,7 @@
 
    ```bash
    supabase functions deploy send-rental-notification
-   supabase secrets set RESEND_API_KEY=re_xxxxxxxxx MAIL_FROM="빌려봄 <no-reply@example.edu>"
+   supabase secrets set RESEND_API_KEY=re_xxxxxxxxx MAIL_FROM="이화 조형예대 장비 대여 <no-reply@example.edu>"
    ```
 
    `RESEND_API_KEY`는 Resend API 키이고, `MAIL_FROM`은 Resend에서 검증한 발송자 주소여야 합니다. 실제 메일 발송에는 Resend 또는 동일한 메일 공급자 계정이 필요합니다.

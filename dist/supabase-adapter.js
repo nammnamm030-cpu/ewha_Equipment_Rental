@@ -33,9 +33,10 @@
       var userId = sessionResult && sessionResult.data && sessionResult.data.session ? sessionResult.data.session.user.id : null;
       var requestPayload = {
         requester_id: userId,
-        requester_name: payload.requesterName || null,
+        requester_name: payload.requesterName,
         requester_email: payload.requesterEmail,
         student_number: payload.studentNumber,
+        requester_phone: payload.requesterPhone,
         purpose: payload.purpose,
         start_date: payload.startDate,
         end_date: payload.endDate,

@@ -1,4 +1,4 @@
--- 빌려봄 Supabase 초기 스키마
+-- 이화 조형예대 장비 대여 Supabase 초기 스키마
 -- 적용: Supabase SQL Editor에서 이 파일을 전체 실행합니다.
 
 create extension if not exists pgcrypto;
@@ -20,9 +20,10 @@ create table if not exists public.equipment (
 create table if not exists public.rental_requests (
   id uuid primary key default gen_random_uuid(),
   requester_id uuid references auth.users(id) on delete set null,
-  requester_name text,
+  requester_name text not null check (char_length(trim(requester_name)) >= 2),
   requester_email text not null check (lower(trim(requester_email)) ~ '^[^@[:space:]]+@(ewhain\.net|ewha\.ac\.kr)$'),
   student_number text not null check (regexp_replace(student_number, '[[:space:]]', '', 'g') ~ '^[0-9]{6,12}$'),
+  requester_phone text not null check (regexp_replace(requester_phone, '[^0-9]', '', 'g') ~ '^[0-9]{9,11}$'),
   purpose text not null check (char_length(trim(purpose)) >= 1),
   start_date date not null,
   end_date date not null,
@@ -126,6 +127,7 @@ begin
         'requester_name', new.requester_name,
         'requester_email', lower(trim(new.requester_email)),
         'student_number', regexp_replace(new.student_number, '[[:space:]]', '', 'g'),
+        'requester_phone', new.requester_phone,
         'purpose', new.purpose,
         'start_date', new.start_date,
         'end_date', new.end_date,

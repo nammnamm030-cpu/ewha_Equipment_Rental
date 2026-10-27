@@ -339,6 +339,8 @@ function renderBasket() {
     </div>
     <form id="applicationForm" novalidate>
       <div class="student-fields">
+        <div class="field"><label for="requesterName">이름 <span aria-hidden="true">*</span></label><input id="requesterName" name="requesterName" type="text" autocomplete="name" placeholder="홍길동" required /></div>
+        <div class="field"><label for="requesterPhone">전화번호 <span aria-hidden="true">*</span></label><input id="requesterPhone" name="requesterPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="010-0000-0000" required /></div>
         <div class="field"><label for="requesterEmail">학교 이메일 <span aria-hidden="true">*</span></label><input id="requesterEmail" name="requesterEmail" type="email" inputmode="email" autocomplete="email" placeholder="name@ewha.ac.kr" required /></div>
         <div class="field"><label for="studentNumber">학번 <span aria-hidden="true">*</span></label><input id="studentNumber" name="studentNumber" type="text" inputmode="numeric" autocomplete="off" maxlength="12" placeholder="6~12자리 숫자" required /></div>
       </div>
@@ -356,7 +358,7 @@ function renderBasket() {
   const purpose = elements.basketBody.querySelector("#rentalPurpose");
   purpose.addEventListener("input", () => { elements.basketBody.querySelector("#purposeCount").textContent = purpose.value.length; });
   const applicationForm = elements.basketBody.querySelector("#applicationForm");
-  [applicationForm.elements.requesterEmail, applicationForm.elements.studentNumber].forEach((field) => {
+  [applicationForm.elements.requesterName, applicationForm.elements.requesterPhone, applicationForm.elements.requesterEmail, applicationForm.elements.studentNumber].forEach((field) => {
     field.addEventListener("input", () => validateStudentFields(applicationForm, true));
     field.addEventListener("blur", () => validateStudentFields(applicationForm, true));
   });
@@ -366,6 +368,16 @@ function renderBasket() {
 function getStudentValidation() {
   if (window.BorrowbomStudentValidation) return window.BorrowbomStudentValidation;
   return {
+    validateName(value) {
+      const normalized = String(value || "").trim().replace(/[\s]+/g, " ");
+      const valid = normalized.length >= 2;
+      return { valid, value: normalized, message: valid ? "" : "이름을 2자 이상 입력해주세요." };
+    },
+    validatePhone(value) {
+      const normalized = String(value || "").replace(/[^0-9]/g, "");
+      const valid = /^[0-9]{9,11}$/.test(normalized);
+      return { valid, value: normalized, message: valid ? "" : "전화번호를 숫자 9~11자리로 입력해주세요." };
+    },
     validateEmail(value) {
       const normalized = String(value || "").trim().toLowerCase();
       const valid = /^[^@\s]+@(ewhain\.net|ewha\.ac\.kr)$/.test(normalized);
@@ -381,15 +393,24 @@ function getStudentValidation() {
 
 function validateStudentFields(form, showMessage) {
   const validation = getStudentValidation();
+  const nameResult = validation.validateName(form.elements.requesterName.value);
+  const phoneResult = validation.validatePhone(form.elements.requesterPhone.value);
   const emailResult = validation.validateEmail(form.elements.requesterEmail.value);
   const numberResult = validation.validateStudentNumber(form.elements.studentNumber.value);
   const error = form.querySelector("#studentError");
+  const nameInput = form.elements.requesterName;
+  const phoneInput = form.elements.requesterPhone;
   const emailInput = form.elements.requesterEmail;
   const numberInput = form.elements.studentNumber;
+  nameInput.setAttribute("aria-invalid", String(!nameResult.valid));
+  phoneInput.setAttribute("aria-invalid", String(!phoneResult.valid));
   emailInput.setAttribute("aria-invalid", String(!emailResult.valid));
   numberInput.setAttribute("aria-invalid", String(!numberResult.valid));
-  if (showMessage) error.textContent = emailResult.valid ? (numberResult.valid ? "" : numberResult.message) : emailResult.message;
-  return { valid: emailResult.valid && numberResult.valid, email: emailResult.value, studentNumber: numberResult.value };
+  if (showMessage) {
+    const firstError = [nameResult, phoneResult, emailResult, numberResult].find((result) => !result.valid);
+    error.textContent = firstError ? firstError.message : "";
+  }
+  return { valid: nameResult.valid && phoneResult.valid && emailResult.valid && numberResult.valid, name: nameResult.value, phone: phoneResult.value, email: emailResult.value, studentNumber: numberResult.value };
 }
 
 async function submitApplication(event) {
@@ -403,7 +424,9 @@ async function submitApplication(event) {
   }
   const studentDetails = validateStudentFields(event.currentTarget, true);
   if (!studentDetails.valid) {
-    if (!studentDetails.email) event.currentTarget.elements.requesterEmail.focus();
+    if (!studentDetails.name) event.currentTarget.elements.requesterName.focus();
+    else if (!studentDetails.phone) event.currentTarget.elements.requesterPhone.focus();
+    else if (!studentDetails.email) event.currentTarget.elements.requesterEmail.focus();
     else if (!studentDetails.studentNumber) event.currentTarget.elements.studentNumber.focus();
     return;
   }
@@ -422,6 +445,8 @@ async function submitApplication(event) {
     try {
       const remoteResult = await adapter.createRentalRequest({
         purpose,
+        requesterName: studentDetails.name,
+        requesterPhone: studentDetails.phone,
         requesterEmail: studentDetails.email,
         studentNumber: studentDetails.studentNumber,
         startDate,
@@ -449,7 +474,7 @@ async function submitApplication(event) {
       id: `APP-${timestamp}-${index}`,
       equipmentId: item.id, name: item.name, symbol: item.symbol, color: item.color,
       assetNo: item.assetNo || entry.assetNo || item.id,
-      remoteRequestId, requesterEmail: studentDetails.email, studentNumber: studentDetails.studentNumber,
+      remoteRequestId, requesterName: studentDetails.name, requesterPhone: studentDetails.phone, requesterEmail: studentDetails.email, studentNumber: studentDetails.studentNumber,
       startDate: entry.startDate, endDate: entry.endDate, purpose,
       location: item.location, status: "applied", createdAt: new Date().toISOString()
     };

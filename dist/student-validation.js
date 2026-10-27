@@ -11,6 +11,22 @@
     return String(value || "").replace(/[\s\u00a0]+/g, "");
   }
 
+  function normalizePhone(value) {
+    return String(value || "").replace(/[^0-9]/g, "");
+  }
+
+  function validateName(value) {
+    var normalized = String(value || "").trim().replace(/[\s]+/g, " ");
+    var valid = normalized.length >= 2;
+    return { valid: valid, value: normalized, message: valid ? "" : "이름을 2자 이상 입력해주세요." };
+  }
+
+  function validatePhone(value) {
+    var normalized = normalizePhone(value);
+    var valid = /^[0-9]{9,11}$/.test(normalized);
+    return { valid: valid, value: normalized, message: valid ? "" : "전화번호를 숫자 9~11자리로 입력해주세요." };
+  }
+
   function validateEmail(value) {
     var normalized = normalizeEmail(value);
     var atIndex = normalized.lastIndexOf("@");
@@ -30,6 +46,9 @@
     allowedDomains: allowedDomains.slice(),
     normalizeEmail: normalizeEmail,
     normalizeStudentNumber: normalizeStudentNumber,
+    normalizePhone: normalizePhone,
+    validateName: validateName,
+    validatePhone: validatePhone,
     validateEmail: validateEmail,
     validateStudentNumber: validateStudentNumber
   };
