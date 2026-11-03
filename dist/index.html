@@ -45,25 +45,13 @@
             <h1 id="heroTitle"><span>이화여자대학교</span><span>조형예술대학</span><span>장비대여</span></h1>
             <p class="hero-description">필요한 장비를 찾고, 가능한 시간을 확인하고, 바로 빌린다.</p>
             <div class="hero-actions">
-              <a class="primary-action" href="#equipment">대여하기 <span aria-hidden="true">→</span></a>
+              <button class="primary-action" id="rentButton" type="button">대여하기 <span aria-hidden="true">→</span></button>
               <button class="secondary-button hero-return" id="heroReturnButton" type="button">반납하기</button>
               <a class="text-action" href="#guide">처음이신가요? <strong>이용 안내</strong></a>
             </div>
           </div>
-          <div class="hero-visual" aria-label="대여 가능한 카메라와 프로젝터 이미지">
-            <div class="availability-pill"><span></span> 오늘 대여 가능</div>
-            <div class="visual-ring ring-one"></div>
-            <div class="visual-ring ring-two"></div>
-            <div class="projector-art" aria-hidden="true">
-              <div class="projector-lens"></div><div class="projector-line"></div>
-            </div>
-            <div class="camera-art" aria-hidden="true">
-              <div class="camera-top"></div><div class="camera-lens"><span></span></div><div class="camera-flash"></div>
-            </div>
-            <div class="hero-note">
-              <strong>실시간 재고 확인</strong>
-              <span>신청 전 수량과 수령 장소를 확인해요</span>
-            </div>
+          <div class="hero-visual" aria-label="학생 확인 후 대여 신청 안내">
+            <div class="hero-visual-copy"><span>RENTAL SERVICE</span><strong>학생 확인 후<br />신청을 시작해요</strong><p>장비를 고른 뒤 이름·학번·학교 이메일을 확인합니다.</p></div>
           </div>
         </div>
         <div class="trust-bar" aria-label="서비스 현황">
@@ -159,6 +147,23 @@
         <button class="icon-button close-dialog" type="button" aria-label="바구니 닫기">×</button>
       </div>
       <div class="basket-body" id="basketBody"></div>
+    </dialog>
+
+    <dialog class="auth-dialog" id="authDialog" aria-labelledby="authTitle">
+      <div class="dialog-header">
+        <div><p class="section-kicker">STUDENT CHECK</p><h2 id="authTitle">학생 확인</h2></div>
+        <button class="icon-button close-auth" type="button" aria-label="학생 확인 닫기">×</button>
+      </div>
+      <div class="auth-body">
+        <p class="auth-intro">대여 신청을 시작하려면 이름, 학번, 학교 이메일을 확인해주세요.</p>
+        <form id="authForm" novalidate>
+          <div class="field"><label for="authName">이름 <span aria-hidden="true">*</span></label><input id="authName" name="requesterName" type="text" autocomplete="name" required /></div>
+          <div class="field"><label for="authStudentNumber">학번 <span aria-hidden="true">*</span></label><input id="authStudentNumber" name="studentNumber" type="text" inputmode="numeric" maxlength="12" autocomplete="off" placeholder="6~12자리 숫자" required /></div>
+          <div class="field"><label for="authEmail">학교 이메일 <span aria-hidden="true">*</span></label><input id="authEmail" name="requesterEmail" type="email" inputmode="email" autocomplete="email" placeholder="name@ewhain.net" required /></div>
+          <p class="form-error" id="authError" role="alert"></p>
+          <button class="primary-button" type="submit">확인하고 대여 시작하기</button>
+        </form>
+      </div>
     </dialog>
 
     <dialog class="return-dialog" id="returnDialog" aria-labelledby="returnTitle">

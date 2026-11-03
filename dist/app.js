@@ -76,8 +76,10 @@ const fallbackEquipment = [
 ];
 
 let equipment = fallbackEquipment;
+equipment = equipment.map((item) => ({ ...item, maxDays: 14 }));
 let categories = ["전체", ...new Set(equipment.map((item) => item.category))];
 const storageKeys = { cart: "borrowbom-cart-v1", applications: "borrowbom-applications-v1" };
+const studentProfileKey = "borrowbom-student-profile-v1";
 const statusLabels = { applied: "신청", approved: "승인", renting: "대여 중", returned: "반납 완료" };
 
 const demoRentals = [
@@ -103,7 +105,7 @@ const elements = {
   basketDialog: document.querySelector("#basketDialog"), basketBody: document.querySelector("#basketBody"),
   returnDialog: document.querySelector("#returnDialog"), returnBody: document.querySelector("#returnBody"),
   basketCount: document.querySelector("#basketCount"), rentalList: document.querySelector("#rentalList"),
-  toast: document.querySelector("#toast")
+  toast: document.querySelector("#toast"), authDialog: document.querySelector("#authDialog")
 };
 
 function readStorage(key, fallback) {
@@ -120,6 +122,15 @@ function writeStorage(key, value) {
     localStorage.setItem(key, JSON.stringify(value));
   } catch (_) {
     showToast("브라우저 저장소를 사용할 수 없어 현재 창에만 보관됩니다.");
+  }
+}
+
+function readStudentProfile() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(studentProfileKey));
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : null;
+  } catch (_) {
+    return null;
   }
 }
 
@@ -153,19 +164,19 @@ function showToast(message) {
 }
 
 const remoteVisuals = {
-  "카메라": { symbol: "CAM", color:"#eef5f0", maxDays: 3 },
-  "빔프로젝터": { symbol: "PROJ", color:"#eef5f0", maxDays: 2 },
-  "TV 모니터": { symbol: "TV", color:"#eef5f0", maxDays: 3 },
-  "디빅스": { symbol: "DVD", color:"#eef5f0", maxDays: 3 },
-  "브라켓": { symbol: "BRKT", color:"#eef5f0", maxDays: 2 },
-  "HDMI 선": { symbol: "HDMI", color:"#eef5f0", maxDays: 5 }
+  "카메라": { symbol: "CAM", color:"#eef5f0", maxDays: 14 },
+  "빔프로젝터": { symbol: "PROJ", color:"#eef5f0", maxDays: 14 },
+  "TV 모니터": { symbol: "TV", color:"#eef5f0", maxDays: 14 },
+  "디빅스": { symbol: "DVD", color:"#eef5f0", maxDays: 14 },
+  "브라켓": { symbol: "BRKT", color:"#eef5f0", maxDays: 14 },
+  "HDMI 선": { symbol: "HDMI", color:"#eef5f0", maxDays: 14 }
 };
 
 const categorySymbols = { "카메라": "CAM", "빔프로젝터": "PROJ", "TV 모니터": "TV", "디빅스": "DVD", "브라켓": "BRKT", "HDMI 선": "HDMI" };
 function symbolForCategory(category) { return categorySymbols[category] || "ITEM"; }
 
 function normalizeRemoteEquipment(row) {
-  const visual = remoteVisuals[row.equipment_type] || { symbol: "ITEM", color:"#eef5f0", maxDays: 3 };
+  const visual = remoteVisuals[row.equipment_type] || { symbol: "ITEM", color:"#eef5f0", maxDays: 14 };
   const displayParts = [row.model_name, row.spec].filter(Boolean);
   const name = displayParts.length ? `${row.equipment_type} · ${displayParts.join(" ")}` : row.equipment_type;
   return {
@@ -239,6 +250,7 @@ function renderEquipment() {
           <span>${item.location}</span>
           <button class="detail-button" type="button" data-detail-id="${item.id}" aria-label="${item.name} 상세 보기">상세 보기 <span aria-hidden="true">→</span></button>
         </div>
+        <button class="card-rent-button" type="button" data-rent-id="${item.id}" ${item.stock === 0 ? "disabled aria-disabled=\"true\"" : ""}>${item.stock === 0 ? "대여 불가" : "대여하기"}</button>
       </div>
     </article>`).join("");
   elements.result.innerHTML = `총 <strong>${filtered.length}개</strong>의 장비`;
@@ -251,7 +263,7 @@ function openDetail(id) {
   if (!item) return;
   const today = new Date();
   const min = toLocalIso(today);
-  const max = toLocalIso(addDays(today, 30));
+  const max = toLocalIso(addDays(today, 13));
   const defaultEnd = toLocalIso(addDays(today, Math.min(1, item.maxDays - 1)));
   elements.detailContent.innerHTML = `
     <div class="detail-layout">
@@ -288,6 +300,7 @@ function openDetail(id) {
   const endInput = form.elements.endDate;
   startInput.addEventListener("change", () => {
     endInput.min = startInput.value || min;
+    endInput.max = startInput.value ? toLocalIso(addDays(new Date(`${startInput.value}T00:00:00`), 13)) : max;
     if (endInput.value < startInput.value) endInput.value = startInput.value;
   });
   form.addEventListener("submit", (event) => addToCart(event, item));
@@ -345,7 +358,7 @@ function renderBasket() {
       <div class="student-fields">
         <div class="field"><label for="requesterName">이름 <span aria-hidden="true">*</span></label><input id="requesterName" name="requesterName" type="text" autocomplete="name" placeholder="홍길동" required /></div>
         <div class="field"><label for="requesterPhone">전화번호 <span aria-hidden="true">*</span></label><input id="requesterPhone" name="requesterPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="010-0000-0000" required /></div>
-        <div class="field"><label for="requesterEmail">학교 이메일 <span aria-hidden="true">*</span></label><input id="requesterEmail" name="requesterEmail" type="email" inputmode="email" autocomplete="email" placeholder="name@ewha.ac.kr" required /></div>
+        <div class="field"><label for="requesterEmail">학교 이메일 <span aria-hidden="true">*</span></label><input id="requesterEmail" name="requesterEmail" type="email" inputmode="email" autocomplete="email" placeholder="name@ewhain.net" required /></div>
         <div class="field"><label for="studentNumber">학번 <span aria-hidden="true">*</span></label><input id="studentNumber" name="studentNumber" type="text" inputmode="numeric" autocomplete="off" maxlength="12" placeholder="6~12자리 숫자" required /></div>
       </div>
       <p class="form-error" id="studentError" role="alert"></p>
@@ -362,11 +375,47 @@ function renderBasket() {
   const purpose = elements.basketBody.querySelector("#rentalPurpose");
   purpose.addEventListener("input", () => { elements.basketBody.querySelector("#purposeCount").textContent = purpose.value.length; });
   const applicationForm = elements.basketBody.querySelector("#applicationForm");
+  const profile = readStudentProfile();
+  if (profile) {
+    applicationForm.elements.requesterName.value = profile.name || "";
+    applicationForm.elements.studentNumber.value = profile.studentNumber || "";
+    applicationForm.elements.requesterEmail.value = profile.email || "";
+  }
   [applicationForm.elements.requesterName, applicationForm.elements.requesterPhone, applicationForm.elements.requesterEmail, applicationForm.elements.studentNumber].forEach((field) => {
     field.addEventListener("input", () => validateStudentFields(applicationForm, true));
     field.addEventListener("blur", () => validateStudentFields(applicationForm, true));
   });
   applicationForm.addEventListener("submit", submitApplication);
+}
+
+function openStudentCheck(next = "basket") {
+  const form = document.querySelector("#authForm");
+  const profile = readStudentProfile();
+  if (profile) {
+    form.elements.requesterName.value = profile.name || "";
+    form.elements.studentNumber.value = profile.studentNumber || "";
+    form.elements.requesterEmail.value = profile.email || "";
+  }
+  elements.authDialog.dataset.next = next;
+  openDialog(elements.authDialog);
+}
+
+function submitStudentCheck(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const validation = getStudentValidation();
+  const name = validation.validateName(form.elements.requesterName.value);
+  const email = validation.validateEmail(form.elements.requesterEmail.value);
+  const studentNumber = validation.validateStudentNumber(form.elements.studentNumber.value);
+  const error = form.querySelector("#authError");
+  const firstError = [name, studentNumber, email].find((result) => !result.valid);
+  if (firstError) { error.textContent = firstError.message; return; }
+  const profile = { name: name.value, studentNumber: studentNumber.value, email: email.value };
+  writeStorage(studentProfileKey, profile);
+  closeDialog(elements.authDialog);
+  if (elements.authDialog.dataset.next === "basket") { renderBasket(); openDialog(elements.basketDialog); }
+  else document.querySelector("#equipment").scrollIntoView({ behavior: "smooth" });
+  showToast("학생 확인이 완료되었습니다. 대여 신청을 시작해주세요.");
 }
 
 function renderReturn() {
@@ -377,7 +426,7 @@ function renderReturn() {
     <div class="student-fields">
       <div class="field"><label for="returnerName">이름 <span aria-hidden="true">*</span></label><input id="returnerName" name="requesterName" type="text" autocomplete="name" required /></div>
       <div class="field"><label for="returnerPhone">전화번호 <span aria-hidden="true">*</span></label><input id="returnerPhone" name="requesterPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="010-0000-0000" required /></div>
-      <div class="field"><label for="returnerEmail">학교 이메일 <span aria-hidden="true">*</span></label><input id="returnerEmail" name="requesterEmail" type="email" inputmode="email" placeholder="name@ewha.ac.kr" required /></div>
+      <div class="field"><label for="returnerEmail">학교 이메일 <span aria-hidden="true">*</span></label><input id="returnerEmail" name="requesterEmail" type="email" inputmode="email" placeholder="name@ewhain.net" required /></div>
       <div class="field"><label for="returnerStudentNumber">학번 <span aria-hidden="true">*</span></label><input id="returnerStudentNumber" name="studentNumber" type="text" inputmode="numeric" maxlength="12" placeholder="6~12자리 숫자" required /></div>
     </div>
     <p class="form-error" id="returnError" role="alert"></p>
@@ -449,8 +498,8 @@ function getStudentValidation() {
     },
     validateEmail(value) {
       const normalized = String(value || "").trim().toLowerCase();
-      const valid = /^[^@\s]+@(ewhain\.net|ewha\.ac\.kr)$/.test(normalized);
-      return { valid, value: normalized, message: valid ? "" : "이화 학교 이메일(@ewhain.net 또는 @ewha.ac.kr)을 입력해주세요." };
+      const valid = /^[^@\s]+@(ewhain\.net|ewha\.co\.kr)$/.test(normalized);
+      return { valid, value: normalized, message: valid ? "" : "이화 학교 이메일(@ewhain.net 또는 @ewha.co.kr)을 입력해주세요." };
     },
     validateStudentNumber(value) {
       const normalized = String(value || "").replace(/[\s\u00a0]+/g, "");
@@ -604,6 +653,8 @@ elements.filters.addEventListener("click", (event) => {
 elements.grid.addEventListener("click", (event) => {
   const button = event.target.closest("[data-detail-id]");
   if (button) openDetail(button.dataset.detailId);
+  const rentButton = event.target.closest("[data-rent-id]");
+  if (rentButton && !rentButton.disabled) openDetail(rentButton.dataset.rentId);
 });
 
 elements.search.addEventListener("input", (event) => { state.query = event.target.value; renderEquipment(); });
@@ -614,7 +665,11 @@ document.querySelector("#resetFilters").addEventListener("click", () => {
   renderFilters(); renderEquipment(); elements.search.focus();
 });
 
-document.querySelector("#basketButton").addEventListener("click", () => { renderBasket(); openDialog(elements.basketDialog); });
+document.querySelector("#basketButton").addEventListener("click", () => {
+  if (!readStudentProfile()) { openStudentCheck("basket"); return; }
+  renderBasket(); openDialog(elements.basketDialog);
+});
+document.querySelector("#rentButton").addEventListener("click", () => openStudentCheck("equipment"));
 document.querySelector("#returnButton").addEventListener("click", () => { renderReturn(); openDialog(elements.returnDialog); });
 document.querySelector("#heroReturnButton").addEventListener("click", () => { renderReturn(); openDialog(elements.returnDialog); });
 elements.detailDialog.addEventListener("click", (event) => { if (event.target.closest(".close-detail")) closeDialog(elements.detailDialog); });
@@ -628,8 +683,10 @@ elements.basketDialog.addEventListener("click", (event) => {
   if (event.target.closest(".browse-equipment")) { closeDialog(elements.basketDialog); document.querySelector("#equipment").scrollIntoView({ behavior: "smooth" }); }
 });
 elements.returnDialog.addEventListener("click", (event) => { if (event.target.closest(".close-return")) closeDialog(elements.returnDialog); });
+elements.authDialog.addEventListener("click", (event) => { if (event.target.closest(".close-auth")) closeDialog(elements.authDialog); });
+document.querySelector("#authForm").addEventListener("submit", submitStudentCheck);
 
-[elements.detailDialog, elements.basketDialog, elements.returnDialog].forEach((dialog) => {
+[elements.detailDialog, elements.basketDialog, elements.returnDialog, elements.authDialog].forEach((dialog) => {
   dialog.addEventListener("close", () => document.body.classList.remove("modal-open"));
   dialog.addEventListener("click", (event) => {
     const rect = dialog.getBoundingClientRect();
