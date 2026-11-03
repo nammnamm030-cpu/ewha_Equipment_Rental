@@ -96,6 +96,7 @@ const state = {
   cart: readStorage(storageKeys.cart, []),
   applications: readStorage(storageKeys.applications, [])
 };
+let returnHistory = [];
 
 const elements = {
   grid: document.querySelector("#equipmentGrid"), filters: document.querySelector("#categoryFilters"),
@@ -390,6 +391,13 @@ function renderBasket() {
 
 function openStudentCheck(next = "basket") {
   const form = document.querySelector("#authForm");
+  const title = document.querySelector("#authTitle");
+  const intro = document.querySelector("#authIntro");
+  const submit = form.querySelector("button[type=submit]");
+  const isReturn = next === "return";
+  title.textContent = isReturn ? "반납 학생 확인" : "대여 학생 확인";
+  intro.textContent = isReturn ? "반납할 장비를 확인하려면 이름, 학번, 학교 이메일을 먼저 확인해주세요." : "대여 신청을 시작하려면 이름, 학번, 학교 이메일을 확인해주세요.";
+  submit.textContent = isReturn ? "확인하고 반납 내역 보기" : "확인하고 대여 시작하기";
   const profile = readStudentProfile();
   if (profile) {
     form.elements.requesterName.value = profile.name || "";
@@ -413,21 +421,50 @@ function submitStudentCheck(event) {
   const profile = { name: name.value, studentNumber: studentNumber.value, email: email.value };
   writeStorage(studentProfileKey, profile);
   closeDialog(elements.authDialog);
-  if (elements.authDialog.dataset.next === "basket") { renderBasket(); openDialog(elements.basketDialog); }
-  else document.querySelector("#equipment").scrollIntoView({ behavior: "smooth" });
-  showToast("학생 확인이 완료되었습니다. 대여 신청을 시작해주세요.");
+  if (elements.authDialog.dataset.next === "basket") {
+    renderBasket(); openDialog(elements.basketDialog); showToast("학생 확인이 완료되었습니다. 대여 신청을 시작해주세요.");
+  } else if (elements.authDialog.dataset.next === "return") {
+    openReturnWorkspace(profile);
+  } else {
+    document.querySelector("#equipment").scrollIntoView({ behavior: "smooth" });
+    showToast("학생 확인이 완료되었습니다. 대여할 장비를 선택해주세요.");
+  }
 }
 
-function renderReturn() {
-  const options = equipment.map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.name)} · ${escapeHtml(item.assetNo)}</option>`).join("");
-  elements.returnBody.innerHTML = `<form id="returnForm" novalidate>
+async function openReturnWorkspace(profile) {
+  let history = [];
+  const adapter = window.BorrowbomSupabase;
+  if (adapter && adapter.isReady()) {
+    const result = await adapter.listStudentRentalRequests(profile);
+    if (!result.error && Array.isArray(result.data)) {
+      history = result.data.filter((request) => !["반납 완료", "거절"].includes(request.status)).flatMap((request) => (request.rental_request_items || []).map((item) => ({
+        equipmentId: item.equipment_id, assetNo: item.asset_no_snapshot, name: item.equipment_name_snapshot,
+        startDate: request.start_date, endDate: request.end_date, status: request.status, requestId: request.id
+      })));
+    }
+  } else {
+    history = state.applications.filter((application) => (application.requestType || "대여") === "대여" && !["returned", "rejected"].includes(application.status) && application.requesterEmail === profile.email && application.studentNumber === profile.studentNumber && application.requesterName === profile.name).map((application) => ({
+      equipmentId: application.equipmentId, assetNo: application.assetNo, name: application.name,
+      startDate: application.startDate, endDate: application.endDate, status: application.status, requestId: application.id
+    }));
+  }
+  returnHistory = history;
+  renderReturn(history, profile);
+  openDialog(elements.returnDialog);
+}
+
+function renderReturn(history = [], profile = {}) {
+  const historyOptions = history.map((entry, index) => `<option value="${escapeHtml(entry.equipmentId)}" data-history-index="${index}">${escapeHtml(entry.name)} · ${escapeHtml(entry.assetNo || entry.equipmentId)} · ${escapeHtml(entry.startDate || "")}</option>`).join("");
+  const equipmentOptions = equipment.map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.name)} · ${escapeHtml(item.assetNo)}</option>`).join("");
+  const options = historyOptions || equipmentOptions;
+  elements.returnBody.innerHTML = `<div class="return-student-context"><strong>${escapeHtml(profile.name || "학생")}님의 반납 신청</strong><span>${history.length ? "과거 대여 내역에서 반납할 장비를 선택해주세요." : "일치하는 과거 대여 내역이 없어 전체 장비에서 선택할 수 있어요."}</span></div>${history.length ? `<div class="return-history-note">과거 대여 ${history.length}건을 찾았어요.</div>` : `<div class="return-history-empty">과거 대여 내역이 없습니다. 반납할 장비를 아래 전체 목록에서 선택해주세요.</div>`}<form id="returnForm" novalidate>
     <div class="return-equipment"><label for="returnEquipment">반납할 장비 <span aria-hidden="true">*</span></label><select id="returnEquipment" name="equipmentId" required>${options}</select></div>
     <div id="returnComponents" class="component-checklist" aria-live="polite"></div>
     <div class="student-fields">
-      <div class="field"><label for="returnerName">이름 <span aria-hidden="true">*</span></label><input id="returnerName" name="requesterName" type="text" autocomplete="name" required /></div>
+      <div class="field"><label for="returnerName">이름 <span aria-hidden="true">*</span></label><input id="returnerName" name="requesterName" type="text" autocomplete="name" value="${escapeHtml(profile.name || "")}" required /></div>
       <div class="field"><label for="returnerPhone">전화번호 <span aria-hidden="true">*</span></label><input id="returnerPhone" name="requesterPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="010-0000-0000" required /></div>
-      <div class="field"><label for="returnerEmail">학교 이메일 <span aria-hidden="true">*</span></label><input id="returnerEmail" name="requesterEmail" type="email" inputmode="email" placeholder="name@ewhain.net" required /></div>
-      <div class="field"><label for="returnerStudentNumber">학번 <span aria-hidden="true">*</span></label><input id="returnerStudentNumber" name="studentNumber" type="text" inputmode="numeric" maxlength="12" placeholder="6~12자리 숫자" required /></div>
+      <div class="field"><label for="returnerEmail">학교 이메일 <span aria-hidden="true">*</span></label><input id="returnerEmail" name="requesterEmail" type="email" inputmode="email" value="${escapeHtml(profile.email || "")}" placeholder="name@ewhain.net" required /></div>
+      <div class="field"><label for="returnerStudentNumber">학번 <span aria-hidden="true">*</span></label><input id="returnerStudentNumber" name="studentNumber" type="text" inputmode="numeric" maxlength="12" value="${escapeHtml(profile.studentNumber || "")}" placeholder="6~12자리 숫자" required /></div>
     </div>
     <p class="form-error" id="returnError" role="alert"></p>
     <button class="primary-button return-submit" type="submit">반납 신청하기</button>
@@ -594,7 +631,7 @@ async function submitApplication(event) {
       assetNo: item.assetNo || entry.assetNo || item.id,
       remoteRequestId, requesterName: studentDetails.name, requesterPhone: studentDetails.phone, requesterEmail: studentDetails.email, studentNumber: studentDetails.studentNumber,
       startDate: entry.startDate, endDate: entry.endDate, purpose,
-      location: item.location, status: "applied", createdAt: new Date().toISOString()
+      location: item.location, status: "applied", requestType: "대여", createdAt: new Date().toISOString()
     };
   });
   state.applications = [...newApplications, ...state.applications];
@@ -670,8 +707,8 @@ document.querySelector("#basketButton").addEventListener("click", () => {
   renderBasket(); openDialog(elements.basketDialog);
 });
 document.querySelector("#rentButton").addEventListener("click", () => openStudentCheck("equipment"));
-document.querySelector("#returnButton").addEventListener("click", () => { renderReturn(); openDialog(elements.returnDialog); });
-document.querySelector("#heroReturnButton").addEventListener("click", () => { renderReturn(); openDialog(elements.returnDialog); });
+document.querySelector("#returnButton").addEventListener("click", () => openStudentCheck("return"));
+document.querySelector("#heroReturnButton").addEventListener("click", () => openStudentCheck("return"));
 elements.detailDialog.addEventListener("click", (event) => { if (event.target.closest(".close-detail")) closeDialog(elements.detailDialog); });
 elements.basketDialog.addEventListener("click", (event) => {
   if (event.target.closest(".close-dialog")) closeDialog(elements.basketDialog);
