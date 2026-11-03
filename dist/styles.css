@@ -57,9 +57,10 @@ img, svg { display: block; }
 .hero h1 { margin: 0; font-size: clamp(40px, 4.5vw, 60px); line-height: 1.15; letter-spacing: -.055em; }
 .hero h1 span { display: block; }.hero h1 span:last-child { color: var(--green-pale); }
 .hero-description { max-width: 520px; margin: 24px 0 30px; color: #e4ddd2; font-size: 18px; line-height: 1.7; }
-.hero-actions { display: flex; align-items: center; gap: 25px; flex-wrap: wrap; }
-.primary-action, .primary-button { min-height: 50px; display: inline-flex; align-items: center; justify-content: center; gap: 22px; padding: 0 21px; cursor: pointer; border: 0; border-radius: 10px; color: white; background: var(--navy-900); font-weight: 850; transition: transform .2s, background .2s; }
+.hero-actions { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.primary-action, .primary-button { min-height: 60px; display: inline-flex; align-items: center; justify-content: center; gap: 28px; padding: 0 30px; cursor: pointer; border: 0; border-radius: 14px; color: white; background: var(--navy-900); font-size: 17px; font-weight: 850; box-shadow: 0 10px 24px rgba(0,70,42,.22); transition: transform .2s, background .2s, box-shadow .2s; }
 .primary-action:hover, .primary-button:hover { background: var(--navy-800); transform: translateY(-2px); }
+.hero-actions .primary-action { min-width: 178px; }
 .text-action { color: #e4ddd2; font-size: 13px; }
 .text-action strong { margin-left: 6px; color: white; border-bottom: 1px solid var(--green-pale); }
 .hero-visual { position: relative; min-height: 430px; }
@@ -235,7 +236,7 @@ dialog::backdrop { background: rgba(5,20,36,.7); backdrop-filter: blur(3px); }
   .equipment-section, .rentals-section { padding-top: 72px; padding-bottom: 78px; }.section-heading { display: block; }.result-summary { margin-top: 12px !important; }.search-panel { flex-direction: column; }.availability-toggle { min-height: 48px; justify-content: flex-start; padding-left: 15px; }
   .equipment-grid { grid-template-columns: 1fr; }.card-visual { height: 190px; }
   .guide-intro, .steps-list { padding-right: 22px; padding-left: 22px; }.steps-list li { grid-template-columns: 31px 42px 1fr; gap: 11px; }.steps-list li:not(:last-child)::after { left: 52px; }.step-icon { width: 42px; height: 42px; }
-  .rentals-heading .secondary-button { margin-top: 18px; }.status-legend { justify-content: flex-start; overflow-x: auto; }.rental-item { grid-template-columns: 52px 1fr; padding: 12px; }.rental-thumb { width: 50px; height: 50px; }.status-chip { grid-column: 2; justify-self: start; }
+  .rentals-heading .secondary-button { margin-top: 18px; }.hero-actions .primary-action { min-width: 210px; }.status-legend { justify-content: flex-start; overflow-x: auto; }.rental-item { grid-template-columns: 52px 1fr; padding: 12px; }.rental-thumb { width: 50px; height: 50px; }.status-chip { grid-column: 2; justify-self: start; }
   .footer-inner { flex-direction: column; }.footer-contact { text-align: left; }
   .detail-layout { grid-template-columns: 1fr; }.detail-visual { min-height: 210px; }.detail-symbol { min-width: 100px; height: 48px; font-size: 18px; }.detail-pane { padding: 23px 20px; }.detail-facts { grid-template-columns: 1fr 1fr; }.date-fields, .student-fields { grid-template-columns: 1fr; }
   .dialog-header { padding: 20px; }.basket-body { padding: 18px 20px 22px; }.basket-item { grid-template-columns: 48px 1fr auto; }.basket-item-visual { width: 48px; height: 48px; }
