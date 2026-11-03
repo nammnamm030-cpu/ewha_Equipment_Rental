@@ -80,6 +80,13 @@ equipment = equipment.map((item) => ({ ...item, maxDays: 14 }));
 let categories = ["전체", ...new Set(equipment.map((item) => item.category))];
 const storageKeys = { cart: "borrowbom-cart-v1", applications: "borrowbom-applications-v1" };
 const studentProfileKey = "borrowbom-student-profile-v1";
+const languageKey = "borrowbom-language-v1";
+const themeKey = "borrowbom-theme-v1";
+const translations = {
+  ko: { brand: "이화여자대학교 조형예술대학 장비대여", equipment: "장비 찾기", guide: "이용 안내", rentals: "나의 대여", basket: "대여 바구니", return: "반납하기", rent: "대여하기", heroDesc: "필요한 장비를 찾고, 가능한 시간을 확인하고, 바로 빌린다.", search: "장비명, 용도를 검색해보세요", available: "대여 가능만", reset: "필터 초기화", detail: "상세 보기", unavailable: "대여 불가", addCart: "대여 바구니에 담기", cartEmpty: "대여 바구니가 비어 있어요", studentCheck: "학생 확인", rentalStudentCheck: "대여 학생 확인", returnStudentCheck: "반납 학생 확인", name: "이름", studentNumber: "학번", email: "학교 이메일", phone: "전화번호", purpose: "이용 목적", pastRentals: "과거 대여 내역", componentCheck: "구성품을 모두 확인했나요?", languageLabel: "한국어", themeLight: "라이트 모드", themeDark: "나이트 모드" },
+  en: { brand: "Ewha Womans University College of Art Equipment Rental", equipment: "Find equipment", guide: "Guide", rentals: "My rentals", basket: "Rental cart", return: "Return", rent: "Rent", heroDesc: "Find the equipment you need, check availability, and rent it.", search: "Search equipment or use", available: "Available only", reset: "Reset filters", detail: "View details", unavailable: "Unavailable", addCart: "Add to rental cart", cartEmpty: "Your rental cart is empty", studentCheck: "Student check", rentalStudentCheck: "Rental student check", returnStudentCheck: "Return student check", name: "Name", studentNumber: "Student number", email: "School email", phone: "Phone", purpose: "Purpose", pastRentals: "Past rentals", componentCheck: "Have you checked all components?", languageLabel: "English", themeLight: "Light mode", themeDark: "Dark mode" }
+};
+function t(key) { return (translations[state.language] || translations.ko)[key] || translations.ko[key] || key; }
 const statusLabels = { applied: "신청", approved: "승인", renting: "대여 중", returned: "반납 완료" };
 
 const demoRentals = [
@@ -94,7 +101,9 @@ const state = {
   query: "",
   availableOnly: false,
   cart: readStorage(storageKeys.cart, []),
-  applications: readStorage(storageKeys.applications, [])
+  applications: readStorage(storageKeys.applications, []),
+  language: localStorage.getItem(languageKey) === "en" ? "en" : "ko",
+  theme: localStorage.getItem(themeKey) === "dark" ? "dark" : "light"
 };
 let returnHistory = [];
 
@@ -162,6 +171,31 @@ function showToast(message) {
   elements.toast.classList.add("show");
   window.clearTimeout(showToast.timer);
   showToast.timer = window.setTimeout(() => elements.toast.classList.remove("show"), 2800);
+}
+
+function applyTheme() {
+  document.documentElement.dataset.theme = state.theme;
+  const button = document.querySelector("#themeToggle");
+  if (button) { button.textContent = state.theme === "dark" ? "☀" : "☾"; button.setAttribute("aria-label", state.theme === "dark" ? t("themeLight") : t("themeDark")); }
+}
+
+function applyLanguage() {
+  document.documentElement.lang = state.language === "en" ? "en" : "ko";
+  const map = {
+    ".brand-copy strong": t("brand"), ".desktop-nav a:nth-child(1)": t("equipment"), ".desktop-nav a:nth-child(2)": t("guide"), ".desktop-nav a:nth-child(3)": t("rentals"),
+    "#basketButton span:nth-of-type(1)": t("basket"), "#returnButton": t("return"), "#rentButton": t("rent"), "#heroReturnButton": t("return"), "#heroDescription": t("heroDesc"),
+    "#searchInput": t("search"), ".availability-label": t("available"), "#resetFilters": t("reset"), "#equipmentTitle": state.language === "en" ? "What would you like to rent today?" : "오늘, 무엇을 빌려볼까요?",
+    "#rentalsTitle": t("rentals"), "#basketTitle": t("basket"), "#returnTitle": t("return"), "#languageToggle": state.language === "ko" ? "EN" : "한글"
+  };
+  Object.entries(map).forEach(([selector, value]) => { document.querySelectorAll(selector).forEach((node) => { if (node.tagName === "INPUT") node.placeholder = value; else node.textContent = value; }); });
+  document.title = t("brand");
+  document.querySelectorAll(".brand-copy strong").forEach((node) => { node.textContent = t("brand"); });
+  const footerDescription = document.querySelector(".footer-inner > div > p");
+  if (footerDescription) footerDescription.textContent = state.language === "en" ? "Ewha Womans University College of Art equipment rental service" : "이화여자대학교 조형예술대학 장비대여 서비스";
+  const validation = getStudentValidation();
+  if (validation.setLanguage) validation.setLanguage(state.language);
+  applyTheme();
+  renderFilters(); renderEquipment(); renderRentals();
 }
 
 const remoteVisuals = {
@@ -249,9 +283,9 @@ function renderEquipment() {
         <p>${item.description}</p>
         <div class="card-meta">
           <span>${item.location}</span>
-          <button class="detail-button" type="button" data-detail-id="${item.id}" aria-label="${item.name} 상세 보기">상세 보기 <span aria-hidden="true">→</span></button>
+          <button class="detail-button" type="button" data-detail-id="${item.id}" aria-label="${item.name} ${t("detail")}">${t("detail")} <span aria-hidden="true">→</span></button>
         </div>
-        <button class="card-rent-button" type="button" data-rent-id="${item.id}" ${item.stock === 0 ? "disabled aria-disabled=\"true\"" : ""}>${item.stock === 0 ? "대여 불가" : "대여하기"}</button>
+        <button class="card-rent-button" type="button" data-rent-id="${item.id}" ${item.stock === 0 ? "disabled aria-disabled=\"true\"" : ""}>${item.stock === 0 ? t("unavailable") : t("rent")}</button>
       </div>
     </article>`).join("");
   elements.result.innerHTML = `총 <strong>${filtered.length}개</strong>의 장비`;
@@ -292,7 +326,7 @@ function openDetail(id) {
             </div>
             <p class="form-error" id="dateError" role="alert"></p>
           </div>
-          <button class="primary-button detail-submit" type="submit" ${item.stock === 0 ? "disabled" : ""}>${item.stock === 0 ? "현재 대여 불가" : "대여 바구니에 담기"}</button>
+          <button class="primary-button detail-submit" type="submit" ${item.stock === 0 ? "disabled" : ""}>${item.stock === 0 ? t("unavailable") : t("addCart")}</button>
         </form>
       </div>
     </div>`;
@@ -342,7 +376,7 @@ function addToCart(event, item) {
 function renderBasket() {
   if (state.cart.length === 0) {
     elements.basketBody.innerHTML = `
-      <div class="empty-basket"><span class="empty-basket-mark" aria-hidden="true">CART</span><h3>대여 바구니가 비어 있어요</h3><p>필요한 장비를 찾고 대여 일정을 선택해주세요.</p><button class="secondary-button browse-equipment" type="button">장비 찾아보기</button></div>`;
+      <div class="empty-basket"><span class="empty-basket-mark" aria-hidden="true">CART</span><h3>${t("cartEmpty")}</h3><p>${state.language === "en" ? "Find equipment and choose a rental schedule." : "필요한 장비를 찾고 대여 일정을 선택해주세요."}</p><button class="secondary-button browse-equipment" type="button">${t("equipment")}</button></div>`;
     return;
   }
   const items = state.cart.map((entry) => ({ ...entry, item: equipment.find((item) => item.id === entry.equipmentId) })).filter((entry) => entry.item);
@@ -357,10 +391,10 @@ function renderBasket() {
     </div>
     <form id="applicationForm" novalidate>
       <div class="student-fields">
-        <div class="field"><label for="requesterName">이름 <span aria-hidden="true">*</span></label><input id="requesterName" name="requesterName" type="text" autocomplete="name" placeholder="홍길동" required /></div>
-        <div class="field"><label for="requesterPhone">전화번호 <span aria-hidden="true">*</span></label><input id="requesterPhone" name="requesterPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="010-0000-0000" required /></div>
-        <div class="field"><label for="requesterEmail">학교 이메일 <span aria-hidden="true">*</span></label><input id="requesterEmail" name="requesterEmail" type="email" inputmode="email" autocomplete="email" placeholder="name@ewhain.net" required /></div>
-        <div class="field"><label for="studentNumber">학번 <span aria-hidden="true">*</span></label><input id="studentNumber" name="studentNumber" type="text" inputmode="numeric" autocomplete="off" maxlength="12" placeholder="6~12자리 숫자" required /></div>
+        <div class="field"><label for="requesterName">${t("name")} <span aria-hidden="true">*</span></label><input id="requesterName" name="requesterName" type="text" autocomplete="name" placeholder="${state.language === "en" ? "Your name" : "홍길동"}" required /></div>
+        <div class="field"><label for="requesterPhone">${t("phone")} <span aria-hidden="true">*</span></label><input id="requesterPhone" name="requesterPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="010-0000-0000" required /></div>
+        <div class="field"><label for="requesterEmail">${t("email")} <span aria-hidden="true">*</span></label><input id="requesterEmail" name="requesterEmail" type="email" inputmode="email" autocomplete="email" placeholder="name@ewhain.net" required /></div>
+        <div class="field"><label for="studentNumber">${t("studentNumber")} <span aria-hidden="true">*</span></label><input id="studentNumber" name="studentNumber" type="text" inputmode="text" pattern="[A-Za-z0-9]{4,20}" minlength="4" maxlength="20" autocomplete="off" placeholder="${state.language === "en" ? "4–20 letters and numbers" : "영문·숫자 4~20자"}" required /></div>
       </div>
       <p class="form-error" id="studentError" role="alert"></p>
       <div class="purpose-field">
@@ -395,9 +429,12 @@ function openStudentCheck(next = "basket") {
   const intro = document.querySelector("#authIntro");
   const submit = form.querySelector("button[type=submit]");
   const isReturn = next === "return";
-  title.textContent = isReturn ? "반납 학생 확인" : "대여 학생 확인";
-  intro.textContent = isReturn ? "반납할 장비를 확인하려면 이름, 학번, 학교 이메일을 먼저 확인해주세요." : "대여 신청을 시작하려면 이름, 학번, 학교 이메일을 확인해주세요.";
-  submit.textContent = isReturn ? "확인하고 반납 내역 보기" : "확인하고 대여 시작하기";
+  title.textContent = isReturn ? t("returnStudentCheck") : t("rentalStudentCheck");
+  intro.textContent = isReturn ? (state.language === "en" ? "Confirm your identity to view past rentals for return." : "반납할 장비를 확인하려면 이름, 학번, 학교 이메일을 먼저 확인해주세요.") : (state.language === "en" ? "Confirm your name, student number, and school email to start a rental." : "대여 신청을 시작하려면 이름, 학번, 학교 이메일을 확인해주세요.");
+  submit.textContent = isReturn ? (state.language === "en" ? "View past rentals" : "확인하고 반납 내역 보기") : (state.language === "en" ? "Confirm and start rental" : "확인하고 대여 시작하기");
+  const labels = form.querySelectorAll("label");
+  [t("name"), t("studentNumber"), t("email")].forEach((label, index) => { if (labels[index]) labels[index].firstChild.textContent = label + " "; });
+  form.elements.studentNumber.placeholder = state.language === "en" ? "4–20 letters and numbers" : "영문·숫자 4~20자";
   const profile = readStudentProfile();
   if (profile) {
     form.elements.requesterName.value = profile.name || "";
@@ -443,7 +480,7 @@ async function openReturnWorkspace(profile) {
       })));
     }
   } else {
-    history = state.applications.filter((application) => (application.requestType || "대여") === "대여" && !["returned", "rejected"].includes(application.status) && application.requesterEmail === profile.email && application.studentNumber === profile.studentNumber && application.requesterName === profile.name).map((application) => ({
+    history = state.applications.filter((application) => (application.requestType || "대여") === "대여" && !["returned", "rejected"].includes(application.status) && String(application.requesterEmail || "").trim().toLowerCase() === String(profile.email || "").trim().toLowerCase() && String(application.studentNumber || "").trim().toUpperCase() === String(profile.studentNumber || "").trim().toUpperCase() && application.requesterName === profile.name).map((application) => ({
       equipmentId: application.equipmentId, assetNo: application.assetNo, name: application.name,
       startDate: application.startDate, endDate: application.endDate, status: application.status, requestId: application.id
     }));
@@ -464,7 +501,7 @@ function renderReturn(history = [], profile = {}) {
       <div class="field"><label for="returnerName">이름 <span aria-hidden="true">*</span></label><input id="returnerName" name="requesterName" type="text" autocomplete="name" value="${escapeHtml(profile.name || "")}" required /></div>
       <div class="field"><label for="returnerPhone">전화번호 <span aria-hidden="true">*</span></label><input id="returnerPhone" name="requesterPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="010-0000-0000" required /></div>
       <div class="field"><label for="returnerEmail">학교 이메일 <span aria-hidden="true">*</span></label><input id="returnerEmail" name="requesterEmail" type="email" inputmode="email" value="${escapeHtml(profile.email || "")}" placeholder="name@ewhain.net" required /></div>
-      <div class="field"><label for="returnerStudentNumber">학번 <span aria-hidden="true">*</span></label><input id="returnerStudentNumber" name="studentNumber" type="text" inputmode="numeric" maxlength="12" value="${escapeHtml(profile.studentNumber || "")}" placeholder="6~12자리 숫자" required /></div>
+      <div class="field"><label for="returnerStudentNumber">학번 <span aria-hidden="true">*</span></label><input id="returnerStudentNumber" name="studentNumber" type="text" inputmode="text" pattern="[A-Za-z0-9]{4,20}" minlength="4" maxlength="20" value="${escapeHtml(profile.studentNumber || "")}" placeholder="영문·숫자 4~20자" required /></div>
     </div>
     <p class="form-error" id="returnError" role="alert"></p>
     <button class="primary-button return-submit" type="submit">반납 신청하기</button>
@@ -539,9 +576,9 @@ function getStudentValidation() {
       return { valid, value: normalized, message: valid ? "" : "이화 학교 이메일(@ewhain.net 또는 @ewha.co.kr)을 입력해주세요." };
     },
     validateStudentNumber(value) {
-      const normalized = String(value || "").replace(/[\s\u00a0]+/g, "");
-      const valid = /^[0-9]{6,12}$/.test(normalized);
-      return { valid, value: normalized, message: valid ? "" : "학번은 공백을 제외한 숫자 6~12자리로 입력해주세요." };
+      const normalized = String(value || "").trim().toUpperCase();
+      const valid = /^[A-Z0-9]{4,20}$/.test(normalized);
+      return { valid, value: normalized, message: valid ? "" : "학번은 앞뒤 공백 없이 영문·숫자 4~20자로 입력해주세요." };
     }
   };
 }
@@ -722,6 +759,16 @@ elements.basketDialog.addEventListener("click", (event) => {
 elements.returnDialog.addEventListener("click", (event) => { if (event.target.closest(".close-return")) closeDialog(elements.returnDialog); });
 elements.authDialog.addEventListener("click", (event) => { if (event.target.closest(".close-auth")) closeDialog(elements.authDialog); });
 document.querySelector("#authForm").addEventListener("submit", submitStudentCheck);
+document.querySelector("#languageToggle").addEventListener("click", () => {
+  state.language = state.language === "ko" ? "en" : "ko";
+  localStorage.setItem(languageKey, state.language);
+  applyLanguage();
+});
+document.querySelector("#themeToggle").addEventListener("click", () => {
+  state.theme = state.theme === "light" ? "dark" : "light";
+  localStorage.setItem(themeKey, state.theme);
+  applyTheme();
+});
 
 [elements.detailDialog, elements.basketDialog, elements.returnDialog, elements.authDialog].forEach((dialog) => {
   dialog.addEventListener("close", () => document.body.classList.remove("modal-open"));
@@ -732,8 +779,7 @@ document.querySelector("#authForm").addEventListener("submit", submitStudentChec
   });
 });
 
-renderFilters();
-renderEquipment();
+applyLanguage();
 renderRentals();
 updateBasketCount();
 document.querySelector("#totalEquipment").textContent = equipment.reduce((sum, item) => sum + item.total, 0);

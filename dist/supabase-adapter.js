@@ -66,7 +66,7 @@
     },
     async listStudentRentalRequests(profile) {
       if (!this.isReady()) return { data: null, error: this.error || "Supabase 설정 없음" };
-      var query = this.client.from("rental_requests").select("id,requester_name,requester_email,requester_phone,student_number,request_type,return_components_confirmed,purpose,start_date,end_date,status,note,created_at,rental_request_items(request_id,equipment_id,asset_no_snapshot,equipment_name_snapshot)").eq("request_type", "대여").eq("requester_email", String(profile.email || "").toLowerCase()).eq("student_number", String(profile.studentNumber || ""));
+      var query = this.client.from("rental_requests").select("id,requester_name,requester_email,requester_phone,student_number,request_type,return_components_confirmed,purpose,start_date,end_date,status,note,created_at,rental_request_items(request_id,equipment_id,asset_no_snapshot,equipment_name_snapshot)").eq("request_type", "대여").eq("requester_email", String(profile.email || "").trim().toLowerCase()).eq("student_number", String(profile.studentNumber || "").trim().toUpperCase());
       return query.order("created_at", { ascending: false });
     }
   };

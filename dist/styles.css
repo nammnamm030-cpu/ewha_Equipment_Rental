@@ -38,7 +38,7 @@ img, svg { display: block; }
 .brand-mark { width: 38px; height: 38px; display: grid; place-items: center; color: white; border-radius: 11px; background: var(--navy-900); transform: rotate(-4deg); }
 .brand-mark svg { width: 25px; fill: none; stroke: currentColor; stroke-width: 1.8; }
 .brand-copy { display: flex; flex-direction: column; line-height: 1; }
-.brand-copy strong { font-size: 20px; letter-spacing: -.04em; }
+.brand-copy strong { font-size: 24px; letter-spacing: -.04em; }
 .brand-copy small { margin-top: 5px; color: var(--green-pale); font-size: 8px; font-weight: 800; letter-spacing: .16em; }
 .desktop-nav { display: flex; gap: 30px; margin-left: auto; }
 .desktop-nav a { position: relative; color: var(--gray-700); font-size: 14px; font-weight: 700; }
@@ -54,7 +54,7 @@ img, svg { display: block; }
 .eyebrow, .section-kicker { margin: 0 0 14px; color: var(--green-pale); font-size: 11px; font-weight: 900; letter-spacing: .18em; }
 .eyebrow { color: var(--green-pale); }
 .eyebrow span { width: 25px; height: 2px; display: inline-block; margin: 0 9px 3px 0; background: var(--green-pale); }
-.hero h1 { margin: 0; font-size: clamp(34px, 4vw, 52px); line-height: 1.18; letter-spacing: -.055em; }
+.hero h1 { margin: 0; font-size: clamp(40px, 4.5vw, 60px); line-height: 1.15; letter-spacing: -.055em; }
 .hero h1 span { display: block; }.hero h1 span:last-child { color: var(--green-pale); }
 .hero-description { max-width: 520px; margin: 24px 0 30px; color: #e4ddd2; font-size: 18px; line-height: 1.7; }
 .hero-actions { display: flex; align-items: center; gap: 25px; flex-wrap: wrap; }
@@ -244,3 +244,14 @@ dialog::backdrop { background: rgba(5,20,36,.7); backdrop-filter: blur(3px); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
 }
+
+.utility-button { min-width: 40px; height: 38px; padding: 0 9px; cursor: pointer; border: 1px solid var(--line); border-radius: 9px; color: var(--navy-900); background: var(--surface); font-size: 11px; font-weight: 850; }
+.utility-button:hover { border-color: var(--navy-900); background: var(--green-wash); }
+.footer-brand .brand-copy strong { font-size: 22px; }.footer-inner > div > p { font-size: 14px; }
+[data-theme="dark"] { --surface: #10221b; --canvas: #0b1712; --ink: #eef7f1; --muted: #b9c9c0; --line: #2a4438; --green-wash: #173127; --green-soft: #214638; --green-pale: #9bc8ad; --gray-700: #c4d3cb; --navy-950: #001c11; --navy-900: #0b6a46; --navy-800: #3b9a70; --shadow: 0 18px 50px rgba(0,0,0,.28); }
+[data-theme="dark"] body, [data-theme="dark"] .site-header, [data-theme="dark"] .equipment-card, [data-theme="dark"] dialog, [data-theme="dark"] .search-box input, [data-theme="dark"] .field input, [data-theme="dark"] .purpose-field textarea, [data-theme="dark"] .return-equipment select { color: var(--ink); background: var(--surface); }
+[data-theme="dark"] .site-header { border-bottom-color: var(--line); background: rgba(16,34,27,.96); }
+[data-theme="dark"] .card-meta, [data-theme="dark"] .detail-section, [data-theme="dark"] .basket-summary, [data-theme="dark"] .dialog-header { border-color: var(--line); }
+[data-theme="dark"] .dialog-header { background: var(--surface); }
+[data-theme="dark"] .return-button, [data-theme="dark"] .utility-button, [data-theme="dark"] .icon-button { color: var(--ink); background: var(--surface); border-color: var(--line); }
+[data-theme="dark"] .hero-description, [data-theme="dark"] .text-action { color: #d8e8df; }

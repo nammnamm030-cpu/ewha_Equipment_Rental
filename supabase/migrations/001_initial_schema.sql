@@ -22,7 +22,7 @@ create table if not exists public.rental_requests (
   requester_id uuid references auth.users(id) on delete set null,
   requester_name text not null check (char_length(trim(requester_name)) >= 2),
   requester_email text not null check (lower(trim(requester_email)) ~ '^[^@[:space:]]+@(ewhain\.net|ewha\.co\.kr)$'),
-  student_number text not null check (regexp_replace(student_number, '[[:space:]]', '', 'g') ~ '^[0-9]{6,12}$'),
+  student_number text not null check (upper(trim(student_number)) ~ '^[A-Z0-9]{4,20}$'),
   requester_phone text not null check (regexp_replace(requester_phone, '[^0-9]', '', 'g') ~ '^[0-9]{9,11}$'),
   purpose text not null check (char_length(trim(purpose)) >= 1),
   start_date date not null,
@@ -63,6 +63,9 @@ create table if not exists public.rental_request_items (
 alter table public.rental_requests drop constraint if exists rental_requests_requester_email_check;
 alter table public.rental_requests add constraint rental_requests_requester_email_check
   check (lower(trim(requester_email)) ~ '^[^@[:space:]]+@(ewhain\.net|ewha\.co\.kr)$');
+alter table public.rental_requests drop constraint if exists rental_requests_student_number_check;
+alter table public.rental_requests add constraint rental_requests_student_number_check
+  check (upper(trim(student_number)) ~ '^[A-Z0-9]{4,20}$');
 alter table public.notification_outbox drop constraint if exists notification_outbox_recipient_email_check;
 alter table public.notification_outbox add constraint notification_outbox_recipient_email_check
   check (lower(trim(recipient_email)) ~ '^[^@[:space:]]+@(ewhain\.net|ewha\.co\.kr)$');
@@ -137,7 +140,7 @@ begin
         'event_type', notification_event,
         'requester_name', new.requester_name,
         'requester_email', lower(trim(new.requester_email)),
-        'student_number', regexp_replace(new.student_number, '[[:space:]]', '', 'g'),
+        'student_number', upper(trim(new.student_number)),
         'requester_phone', new.requester_phone,
         'purpose', new.purpose,
         'start_date', new.start_date,
