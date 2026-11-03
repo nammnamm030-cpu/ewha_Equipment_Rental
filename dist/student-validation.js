@@ -1,7 +1,7 @@
 (function attachStudentValidation(global) {
   "use strict";
 
-  var allowedDomains = ["ewhain.net", "ewha.co.kr"];
+  var allowedDomains = ["ewhain.net", "ewha.ac.kr"];
   var language = "ko";
   function message(ko, en) { return language === "en" ? en : ko; }
 
@@ -35,7 +35,7 @@
     var domain = atIndex === -1 ? "" : normalized.slice(atIndex + 1);
     var localPart = atIndex === -1 ? "" : normalized.slice(0, atIndex);
     var valid = Boolean(localPart) && allowedDomains.includes(domain) && /^[^@\s]+$/.test(localPart);
-    return { valid: valid, value: normalized, message: valid ? "" : message("이화 학교 이메일(@ewhain.net 또는 @ewha.co.kr)을 입력해주세요.", "Use an Ewha email ending in @ewhain.net or @ewha.co.kr.") };
+    return { valid: valid, value: normalized, message: valid ? "" : message("이화 학교 이메일(@ewhain.net 또는 @ewha.ac.kr)을 입력해주세요.", "Use an Ewha email ending in @ewhain.net or @ewha.ac.kr.") };
   }
 
   function validateStudentNumber(value) {

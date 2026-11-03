@@ -21,7 +21,7 @@ create table if not exists public.rental_requests (
   id uuid primary key default gen_random_uuid(),
   requester_id uuid references auth.users(id) on delete set null,
   requester_name text not null check (char_length(trim(requester_name)) >= 2),
-  requester_email text not null check (lower(trim(requester_email)) ~ '^[^@[:space:]]+@(ewhain\.net|ewha\.co\.kr)$'),
+  requester_email text not null check (lower(trim(requester_email)) ~ '^[^@[:space:]]+@(ewhain\.net|ewha\.ac\.kr)$'),
   student_number text not null check (upper(trim(student_number)) ~ '^[A-Z0-9]{4,20}$'),
   requester_phone text not null check (regexp_replace(requester_phone, '[^0-9]', '', 'g') ~ '^[0-9]{9,11}$'),
   purpose text not null check (char_length(trim(purpose)) >= 1),
@@ -41,7 +41,7 @@ create table if not exists public.notification_outbox (
   id uuid primary key default gen_random_uuid(),
   request_id uuid not null references public.rental_requests(id) on delete cascade,
   event_type text not null check (event_type in ('request_submitted', 'approved', 'checked_out', 'returned', 'rejected')),
-  recipient_email text not null check (lower(trim(recipient_email)) ~ '^[^@[:space:]]+@(ewhain\.net|ewha\.co\.kr)$'),
+  recipient_email text not null check (lower(trim(recipient_email)) ~ '^[^@[:space:]]+@(ewhain\.net|ewha\.ac\.kr)$'),
   payload jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
   sent_at timestamptz,
@@ -62,13 +62,13 @@ create table if not exists public.rental_request_items (
 -- 기존 프로젝트에 재적용할 때도 학생 이메일 정책을 최신 허용 도메인으로 맞춥니다.
 alter table public.rental_requests drop constraint if exists rental_requests_requester_email_check;
 alter table public.rental_requests add constraint rental_requests_requester_email_check
-  check (lower(trim(requester_email)) ~ '^[^@[:space:]]+@(ewhain\.net|ewha\.co\.kr)$');
+  check (lower(trim(requester_email)) ~ '^[^@[:space:]]+@(ewhain\.net|ewha\.ac\.kr)$');
 alter table public.rental_requests drop constraint if exists rental_requests_student_number_check;
 alter table public.rental_requests add constraint rental_requests_student_number_check
   check (upper(trim(student_number)) ~ '^[A-Z0-9]{4,20}$');
 alter table public.notification_outbox drop constraint if exists notification_outbox_recipient_email_check;
 alter table public.notification_outbox add constraint notification_outbox_recipient_email_check
-  check (lower(trim(recipient_email)) ~ '^[^@[:space:]]+@(ewhain\.net|ewha\.co\.kr)$');
+  check (lower(trim(recipient_email)) ~ '^[^@[:space:]]+@(ewhain\.net|ewha\.ac\.kr)$');
 
 create or replace function public.set_updated_at()
 returns trigger

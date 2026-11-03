@@ -78,7 +78,7 @@ const fallbackEquipment = [
 let equipment = fallbackEquipment;
 equipment = equipment.map((item) => ({ ...item, maxDays: 14 }));
 let categories = ["전체", ...new Set(equipment.map((item) => item.category))];
-const storageKeys = { cart: "borrowbom-cart-v1", applications: "borrowbom-applications-v1" };
+const storageKeys = { cart: "borrowbom-cart-v1", applications: "borrowbom-applications-v1", holidays: "borrowbom-holidays-v1" };
 const studentProfileKey = "borrowbom-student-profile-v1";
 const languageKey = "borrowbom-language-v1";
 const themeKey = "borrowbom-theme-v1";
@@ -106,6 +106,32 @@ const state = {
   theme: localStorage.getItem(themeKey) === "dark" ? "dark" : "light"
 };
 let returnHistory = [];
+const koreanHolidays = {
+  "2026-01-01": "신정", "2026-02-16": "설날 연휴", "2026-02-17": "설날", "2026-02-18": "설날 연휴",
+  "2026-03-01": "삼일절", "2026-03-02": "삼일절 대체공휴일", "2026-05-01": "근로자의 날", "2026-05-05": "어린이날",
+  "2026-05-24": "부처님오신날", "2026-05-25": "부처님오신날 대체공휴일", "2026-06-06": "현충일",
+  "2026-08-15": "광복절", "2026-08-17": "광복절 대체공휴일", "2026-10-03": "개천절", "2026-10-05": "개천절 대체공휴일",
+  "2026-10-09": "한글날", "2026-12-25": "성탄절",
+  "2027-01-01": "신정", "2027-02-06": "설날 연휴", "2027-02-07": "설날", "2027-02-08": "설날 연휴",
+  "2027-02-09": "설날 대체공휴일", "2027-03-01": "삼일절", "2027-05-01": "근로자의 날", "2027-05-05": "어린이날",
+  "2027-05-13": "부처님오신날", "2027-06-06": "현충일", "2027-08-15": "광복절", "2027-08-16": "광복절 대체공휴일",
+  "2027-10-03": "개천절", "2027-10-04": "개천절 대체공휴일", "2027-10-09": "한글날", "2027-12-25": "성탄절"
+};
+
+function getHolidayMap() {
+  const custom = readStorage(storageKeys.holidays, {});
+  return { ...koreanHolidays, ...(custom && typeof custom === "object" && !Array.isArray(custom) ? custom : {}) };
+}
+
+function holidayName(date) { return getHolidayMap()[date] || ""; }
+
+function datesBetween(start, end) {
+  const dates = [];
+  const cursor = new Date(`${start}T00:00:00`);
+  const last = new Date(`${end}T00:00:00`);
+  while (cursor <= last) { dates.push(toLocalIso(cursor)); cursor.setDate(cursor.getDate() + 1); }
+  return dates;
+}
 
 const elements = {
   grid: document.querySelector("#equipmentGrid"), filters: document.querySelector("#categoryFilters"),
@@ -121,7 +147,9 @@ const elements = {
 function readStorage(key, fallback) {
   try {
     const parsed = JSON.parse(localStorage.getItem(key));
-    return Array.isArray(parsed) ? parsed : fallback;
+    if (Array.isArray(fallback)) return Array.isArray(parsed) ? parsed : fallback;
+    if (fallback && typeof fallback === "object") return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : fallback;
+    return parsed ?? fallback;
   } catch (_) {
     return fallback;
   }
@@ -324,6 +352,8 @@ function openDetail(id) {
               <div class="field"><label for="startDate">대여일</label><input id="startDate" name="startDate" type="date" value="${min}" min="${min}" max="${max}" required /></div>
               <div class="field"><label for="endDate">반납일</label><input id="endDate" name="endDate" type="date" value="${defaultEnd}" min="${min}" max="${max}" required /></div>
             </div>
+            <p class="holiday-note">공휴일은 대여할 수 없어요. <span class="holiday-list">${Object.entries(getHolidayMap()).filter(([date]) => date >= min && date <= max).map(([date, name]) => `${date} ${name}`).join(" · ") || "등록된 공휴일 없음"}</span></p>
+            <button class="holiday-admin-button" type="button">관리자 휴일 설정</button>
             <p class="form-error" id="dateError" role="alert"></p>
           </div>
           <button class="primary-button detail-submit" type="submit" ${item.stock === 0 ? "disabled" : ""}>${item.stock === 0 ? t("unavailable") : t("addCart")}</button>
@@ -333,10 +363,28 @@ function openDetail(id) {
   const form = elements.detailContent.querySelector("#dateForm");
   const startInput = form.elements.startDate;
   const endInput = form.elements.endDate;
+  const markHoliday = (input) => {
+    const holiday = holidayName(input.value);
+    input.classList.toggle("holiday-date", Boolean(holiday));
+    input.setAttribute("aria-label", holiday ? `${input.name === "startDate" ? "대여일" : "반납일"} ${holiday}` : (input.name === "startDate" ? "대여일" : "반납일"));
+  };
+  markHoliday(startInput); markHoliday(endInput);
   startInput.addEventListener("change", () => {
     endInput.min = startInput.value || min;
     endInput.max = startInput.value ? toLocalIso(addDays(new Date(`${startInput.value}T00:00:00`), 13)) : max;
     if (endInput.value < startInput.value) endInput.value = startInput.value;
+    markHoliday(startInput); markHoliday(endInput);
+  });
+  endInput.addEventListener("change", () => markHoliday(endInput));
+  form.querySelector(".holiday-admin-button").addEventListener("click", () => {
+    const date = window.prompt("지정할 휴일 날짜를 입력하세요 (YYYY-MM-DD)");
+    if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(String(date || ""))) return;
+    const name = window.prompt("휴일 이름을 입력하세요", "학교 지정 휴일") || "학교 지정 휴일";
+    const custom = readStorage(storageKeys.holidays, {});
+    custom[date] = name.trim() || "학교 지정 휴일";
+    writeStorage(storageKeys.holidays, custom);
+    showToast(`${date} ${custom[date]} 휴일을 저장했어요.`);
+    openDetail(item.id);
   });
   form.addEventListener("submit", (event) => addToCart(event, item));
   openDialog(elements.detailDialog);
@@ -355,6 +403,11 @@ function addToCart(event, item) {
   }
   if (startDate < today || endDate < startDate) {
     error.textContent = "오늘 이후의 올바른 대여 기간을 선택해주세요.";
+    return;
+  }
+  const holiday = datesBetween(startDate, endDate).map(holidayName).find(Boolean);
+  if (holiday) {
+    error.textContent = `${holiday}에는 대여할 수 없어요. 다른 날짜를 선택해주세요.`;
     return;
   }
   const days = Math.round((new Date(`${endDate}T00:00:00`) - new Date(`${startDate}T00:00:00`)) / 86400000) + 1;
@@ -393,7 +446,7 @@ function renderBasket() {
       <div class="student-fields">
         <div class="field"><label for="requesterName">${t("name")} <span aria-hidden="true">*</span></label><input id="requesterName" name="requesterName" type="text" autocomplete="name" placeholder="${state.language === "en" ? "Your name" : "홍길동"}" required /></div>
         <div class="field"><label for="requesterPhone">${t("phone")} <span aria-hidden="true">*</span></label><input id="requesterPhone" name="requesterPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="010-0000-0000" required /></div>
-        <div class="field"><label for="requesterEmail">${t("email")} <span aria-hidden="true">*</span></label><input id="requesterEmail" name="requesterEmail" type="email" inputmode="email" autocomplete="email" placeholder="name@ewhain.net" required /></div>
+        <div class="field"><label for="requesterEmail">${t("email")} <span aria-hidden="true">*</span></label><input id="requesterEmail" name="requesterEmail" type="email" inputmode="email" autocomplete="email" placeholder="name@ewhain.net 또는 name@ewha.ac.kr" required /></div>
         <div class="field"><label for="studentNumber">${t("studentNumber")} <span aria-hidden="true">*</span></label><input id="studentNumber" name="studentNumber" type="text" inputmode="text" pattern="[A-Za-z0-9]{4,20}" minlength="4" maxlength="20" autocomplete="off" placeholder="${state.language === "en" ? "4–20 letters and numbers" : "영문·숫자 4~20자"}" required /></div>
       </div>
       <p class="form-error" id="studentError" role="alert"></p>
@@ -457,6 +510,7 @@ function submitStudentCheck(event) {
   if (firstError) { error.textContent = firstError.message; return; }
   const profile = { name: name.value, studentNumber: studentNumber.value, email: email.value };
   writeStorage(studentProfileKey, profile);
+  renderRentals();
   closeDialog(elements.authDialog);
   if (elements.authDialog.dataset.next === "basket") {
     renderBasket(); openDialog(elements.basketDialog); showToast("학생 확인이 완료되었습니다. 대여 신청을 시작해주세요.");
@@ -500,7 +554,7 @@ function renderReturn(history = [], profile = {}) {
     <div class="student-fields">
       <div class="field"><label for="returnerName">이름 <span aria-hidden="true">*</span></label><input id="returnerName" name="requesterName" type="text" autocomplete="name" value="${escapeHtml(profile.name || "")}" required /></div>
       <div class="field"><label for="returnerPhone">전화번호 <span aria-hidden="true">*</span></label><input id="returnerPhone" name="requesterPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="010-0000-0000" required /></div>
-      <div class="field"><label for="returnerEmail">학교 이메일 <span aria-hidden="true">*</span></label><input id="returnerEmail" name="requesterEmail" type="email" inputmode="email" value="${escapeHtml(profile.email || "")}" placeholder="name@ewhain.net" required /></div>
+      <div class="field"><label for="returnerEmail">학교 이메일 <span aria-hidden="true">*</span></label><input id="returnerEmail" name="requesterEmail" type="email" inputmode="email" value="${escapeHtml(profile.email || "")}" placeholder="name@ewhain.net 또는 name@ewha.ac.kr" required /></div>
       <div class="field"><label for="returnerStudentNumber">학번 <span aria-hidden="true">*</span></label><input id="returnerStudentNumber" name="studentNumber" type="text" inputmode="text" pattern="[A-Za-z0-9]{4,20}" minlength="4" maxlength="20" value="${escapeHtml(profile.studentNumber || "")}" placeholder="영문·숫자 4~20자" required /></div>
     </div>
     <p class="form-error" id="returnError" role="alert"></p>
@@ -572,8 +626,8 @@ function getStudentValidation() {
     },
     validateEmail(value) {
       const normalized = String(value || "").trim().toLowerCase();
-      const valid = /^[^@\s]+@(ewhain\.net|ewha\.co\.kr)$/.test(normalized);
-      return { valid, value: normalized, message: valid ? "" : "이화 학교 이메일(@ewhain.net 또는 @ewha.co.kr)을 입력해주세요." };
+      const valid = /^[^@\s]+@(ewhain\.net|ewha\.ac\.kr)$/.test(normalized);
+      return { valid, value: normalized, message: valid ? "" : "이화 학교 이메일(@ewhain.net 또는 @ewha.ac.kr)을 입력해주세요." };
     },
     validateStudentNumber(value) {
       const normalized = String(value || "").trim().toUpperCase();
@@ -686,7 +740,24 @@ async function submitApplication(event) {
 }
 
 function renderRentals() {
-  const rentals = [...state.applications, ...demoRentals];
+  const profile = readStudentProfile();
+  if (!profile) {
+    elements.rentalList.innerHTML = `<div class="rental-empty">대여 목록을 확인하려면 먼저 대여하기 또는 반납하기에서 학생 확인을 완료해주세요.</div>`;
+    return;
+  }
+  const email = String(profile.email || "").trim().toLowerCase();
+  const studentNumber = String(profile.studentNumber || "").trim().toUpperCase();
+  const name = String(profile.name || "").trim();
+  const rentals = state.applications.filter((rental) =>
+    (rental.requestType || "대여") === "대여" &&
+    String(rental.requesterEmail || "").trim().toLowerCase() === email &&
+    String(rental.studentNumber || "").trim().toUpperCase() === studentNumber &&
+    String(rental.requesterName || "").trim() === name
+  );
+  if (!rentals.length) {
+    elements.rentalList.innerHTML = `<div class="rental-empty">현재 ${escapeHtml(name)}님의 대여 목록이 없습니다.</div>`;
+    return;
+  }
   elements.rentalList.innerHTML = rentals.map((rental) => {
     const linkedItem = equipment.find((item) => item.id === rental.equipmentId);
     const category = rental.category || linkedItem?.category || (rental.name.includes("프로젝터") ? "빔프로젝터" : rental.name.includes("카메라") ? "카메라" : "");
