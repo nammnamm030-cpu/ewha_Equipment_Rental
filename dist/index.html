@@ -51,6 +51,7 @@
             </div>
           </div>
           <div class="hero-visual" aria-label="학생 확인 후 대여 신청 안내">
+            <div class="ewha-watermark" aria-hidden="true"><strong>EWHA</strong><span>EWHA WOMANS UNIVERSITY</span></div>
             <div class="hero-visual-copy"><span>RENTAL SERVICE</span><strong>학생 확인 후<br />신청을 시작해요</strong><p>장비를 고른 뒤 이름·학번·학교 이메일을 확인합니다.</p></div>
           </div>
         </div>
@@ -188,7 +189,7 @@
       </div>
       <div class="qr-body" id="qrBody">
         <p class="qr-intro">장비에 붙은 QR을 스캔하면 대여 또는 반납 화면에 장비가 바로 추가됩니다.</p>
-        <div class="qr-reader" id="qrReader"></div>
+        <div class="qr-reader" id="qrReader"><p class="qr-camera-fallback">카메라 권한을 허용하면 장비 QR을 스캔할 수 있어요.</p></div>
         <div class="qr-manual"><label for="qrManualCode">식별코드 직접 입력</label><div><input id="qrManualCode" placeholder="예: CAM-2026-001" /><button class="secondary-button" id="qrManualButton" type="button">확인</button></div></div>
         <div id="qrResult" class="qr-result" aria-live="polite"></div>
       </div>

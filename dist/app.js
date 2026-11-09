@@ -611,15 +611,23 @@ async function openQrDialog() {
   openDialog(elements.qrDialog);
   elements.qrResult.innerHTML = "";
   elements.qrManualCode.value = "";
+  elements.qrReader.innerHTML = `<p class="qr-camera-fallback">카메라 권한을 확인하는 중…</p>`;
   try {
+    if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) throw new Error("SECURE_CAMERA_UNAVAILABLE");
+    const permissionStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: false });
+    permissionStream.getTracks().forEach((track) => track.stop());
     const Scanner = await loadQrScannerLibrary();
+    elements.qrReader.innerHTML = "";
     qrScanner = new Scanner("qrReader");
-    await qrScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 230, height: 230 } }, (decodedText) => {
+    await qrScanner.start({ facingMode: { ideal: "environment" } }, { fps: 10, qrbox: { width: 230, height: 230 } }, (decodedText) => {
       renderQrResult(findEquipmentByCode(decodedText));
       qrScanner.stop().catch(() => {});
     }, () => {});
-  } catch (_) {
-    elements.qrReader.innerHTML = `<p class="qr-camera-fallback">카메라를 사용할 수 없습니다. 아래에 장비 식별코드를 직접 입력해주세요.</p>`;
+  } catch (error) {
+    const message = error && error.name === "NotAllowedError"
+      ? "카메라 권한이 거부되었습니다. 브라우저 주소창의 카메라 권한을 허용한 뒤 다시 시도해주세요."
+      : "이 환경에서는 카메라를 사용할 수 없습니다. HTTPS 접속과 카메라 권한을 확인하거나 아래에 식별코드를 직접 입력해주세요.";
+    elements.qrReader.innerHTML = `<p class="qr-camera-fallback">${message}</p>`;
   }
 }
 
