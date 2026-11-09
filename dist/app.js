@@ -347,7 +347,6 @@ function renderEquipment() {
       <div class="card-visual" style="--visual-bg:${item.color}">
         <img class="equipment-photo" src="${imageUrlForEquipment(item)}" alt="${escapeHtml(item.name)} 실제 장비 사진" loading="lazy" />
         <span class="stock-badge ${item.stock === 0 ? "unavailable" : ""}">${item.stock > 0 ? `대여 가능 ${item.stock}개` : "현재 대여 중"}</span>
-        <span class="equipment-symbol" aria-hidden="true">${symbolForCategory(item.category)}</span>
         <span class="category-label">${item.category}</span>
       </div>
       <div class="card-body">

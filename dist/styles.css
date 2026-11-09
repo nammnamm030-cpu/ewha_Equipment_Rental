@@ -114,8 +114,8 @@ img, svg { display: block; }
 .equipment-card:hover { border-color: var(--green-pale); box-shadow: var(--shadow); transform: translateY(-5px); }
 .equipment-photo { position: absolute; inset: 0; width: 100%; height: 100%; padding: 14px; object-fit: contain; opacity: .9; mix-blend-mode: multiply; }
 .card-visual { position: relative; height: 205px; display: grid; place-items: center; overflow: hidden; background: var(--visual-bg); }
-.card-visual::before { position: absolute; width: 180px; height: 180px; content: ""; border: 1px solid rgba(18,45,79,.08); border-radius: 50%; }
-.card-visual::after { position: absolute; width: 110px; height: 110px; content: ""; border: 1px solid rgba(18,45,79,.08); border-radius: 50%; }
+.card-visual::before, .card-visual::after { display: none; }
+.equipment-symbol { display: none !important; }
 .equipment-symbol { position: relative; z-index: 1; display: inline-grid; min-width: 72px; height: 40px; place-items: center; padding: 0 12px; border: 1px solid var(--navy-900); border-radius: 10px; color: var(--navy-900); background: rgba(255,255,255,.72); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 14px; font-weight: 800; letter-spacing: .08em; }
 .stock-badge { position: absolute; z-index: 2; top: 14px; left: 14px; display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 99px; color: var(--green); background: rgba(255,255,255,.92); font-size: 10px; font-weight: 850; box-shadow: 0 4px 12px rgba(20,40,60,.08); }
 .stock-badge::before { width: 6px; height: 6px; content: ""; border-radius: 50%; background: currentColor; }
