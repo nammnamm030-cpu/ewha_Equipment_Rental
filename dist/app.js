@@ -1000,7 +1000,6 @@ document.querySelector("#basketButton").addEventListener("click", () => {
   renderBasket(); openDialog(elements.basketDialog);
 });
 document.querySelector("#rentButton").addEventListener("click", () => openStudentCheck("equipment"));
-document.querySelector("#returnButton").addEventListener("click", () => openStudentCheck("return"));
 document.querySelector("#heroReturnButton").addEventListener("click", () => openStudentCheck("return"));
 elements.detailDialog.addEventListener("click", (event) => { if (event.target.closest(".close-detail")) closeDialog(elements.detailDialog); });
 elements.basketDialog.addEventListener("click", (event) => {
