@@ -112,6 +112,8 @@ const state = {
   theme: localStorage.getItem(themeKey) === "dark" ? "dark" : "light"
 };
 let returnHistory = [];
+let qrScanner = null;
+let scannedEquipmentId = "";
 const koreanHolidays = {
   "2026-01-01": "신정", "2026-02-16": "설날 연휴", "2026-02-17": "설날", "2026-02-18": "설날 연휴",
   "2026-03-01": "삼일절", "2026-03-02": "삼일절 대체공휴일", "2026-05-01": "근로자의 날", "2026-05-05": "어린이날",
@@ -148,6 +150,7 @@ const elements = {
   returnDialog: document.querySelector("#returnDialog"), returnBody: document.querySelector("#returnBody"),
   basketCount: document.querySelector("#basketCount"), rentalList: document.querySelector("#rentalList"),
   toast: document.querySelector("#toast"), authDialog: document.querySelector("#authDialog"), operatorDialog: document.querySelector("#operatorDialog"), operatorBody: document.querySelector("#operatorBody")
+  , qrDialog: document.querySelector("#qrDialog"), qrBody: document.querySelector("#qrBody"), qrReader: document.querySelector("#qrReader"), qrResult: document.querySelector("#qrResult"), qrManualCode: document.querySelector("#qrManualCode")
 };
 
 function readStorage(key, fallback) {
@@ -556,6 +559,56 @@ function nextEquipmentCode(category) {
   return `${prefix}-${year}-${String(max + 1).padStart(3, "0")}`;
 }
 
+function loadQrScannerLibrary() {
+  if (window.Html5Qrcode) return Promise.resolve(window.Html5Qrcode);
+  return new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js";
+    script.onload = () => resolve(window.Html5Qrcode);
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+}
+
+function findEquipmentByCode(code) {
+  const normalized = String(code || "").trim().replace(/^.*#qr=/, "").split(/[?&]/)[0];
+  return equipment.find((item) => item.id === normalized || item.assetNo === normalized);
+}
+
+function renderQrResult(item) {
+  if (!item) {
+    elements.qrResult.innerHTML = `<p class="form-error">장비 식별코드를 찾을 수 없습니다.</p>`;
+    return;
+  }
+  scannedEquipmentId = item.id;
+  elements.qrResult.innerHTML = `<div class="qr-result-card"><strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(item.id)} · ${item.stock > 0 ? "대여 가능" : "현재 대여 중"}</span><div class="qr-result-actions"><button class="primary-button qr-borrow-action" type="button" ${item.stock === 0 ? "disabled" : ""}>대여 페이지에 추가</button><button class="secondary-button qr-return-action" type="button">반납 페이지 열기</button></div></div>`;
+  elements.qrResult.querySelector(".qr-borrow-action")?.addEventListener("click", () => {
+    const today = toLocalIso(new Date());
+    const tomorrow = toLocalIso(addDays(new Date(), 1));
+    const entry = { equipmentId: item.id, assetNo: item.assetNo || item.id, name: item.name, startDate: today, endDate: tomorrow };
+    state.cart = [...state.cart.filter((existing) => existing.equipmentId !== item.id), entry];
+    writeStorage(storageKeys.cart, state.cart); updateBasketCount(); closeDialog(elements.qrDialog);
+    if (!readStudentProfile()) openStudentCheck("basket"); else { renderBasket(); openDialog(elements.basketDialog); }
+  });
+  elements.qrResult.querySelector(".qr-return-action")?.addEventListener("click", () => { closeDialog(elements.qrDialog); openStudentCheck("return"); });
+}
+
+async function openQrDialog() {
+  openDialog(elements.qrDialog);
+  elements.qrResult.innerHTML = "";
+  elements.qrManualCode.value = "";
+  try {
+    const Scanner = await loadQrScannerLibrary();
+    qrScanner = new Scanner("qrReader");
+    await qrScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 230, height: 230 } }, (decodedText) => {
+      renderQrResult(findEquipmentByCode(decodedText));
+      qrScanner.stop().catch(() => {});
+    }, () => {});
+  } catch (_) {
+    elements.qrReader.innerHTML = `<p class="qr-camera-fallback">카메라를 사용할 수 없습니다. 아래에 장비 식별코드를 직접 입력해주세요.</p>`;
+  }
+}
+
 function openOperatorDashboard(profile) {
   renderOperatorDashboard(profile);
   openDialog(elements.operatorDialog);
@@ -579,6 +632,7 @@ function renderOperatorDashboard(profile) {
         <p class="form-error" id="operatorError" role="alert"></p>
       </form>
     </section>
+    <section class="operator-panel"><div class="operator-panel-heading"><div><p class="section-kicker">EQUIPMENT QR</p><h3>장비 QR 만들기</h3><p>QR을 출력해 장비에 붙이면 스캔으로 대여·반납을 시작할 수 있습니다.</p></div></div><div class="operator-qr-grid">${equipment.map((item) => `<button class="operator-qr-item" type="button" data-qr-equipment="${escapeHtml(item.id)}"><span>${escapeHtml(item.name)}</span><small>${escapeHtml(item.id)}</small></button>`).join("")}</div></section>
     <section class="operator-panel"><div class="operator-panel-heading"><div><p class="section-kicker">BORROWERS</p><h3>대여자 목록</h3><p>운영자 계정에서만 전체 신청자를 확인할 수 있습니다.</p></div></div><div class="operator-table-wrap"><table class="operator-table"><thead><tr><th>이름</th><th>이메일</th><th>학번</th><th>장비</th><th>기간</th><th>상태</th></tr></thead><tbody>${borrowerRows}</tbody></table></div></section>`;
   elements.operatorBody.querySelector("#operatorEquipmentForm").addEventListener("submit", (event) => {
     event.preventDefault();
@@ -598,6 +652,32 @@ function renderOperatorDashboard(profile) {
     renderOperatorDashboard(profile);
     showToast(`${code} 장비가 등록되었습니다.`);
   });
+  elements.operatorBody.querySelectorAll("[data-qr-equipment]").forEach((button) => button.addEventListener("click", () => openEquipmentQrPrint(button.dataset.qrEquipment)));
+}
+
+function loadQrGeneratorLibrary() {
+  if (window.QRCode) return Promise.resolve(window.QRCode);
+  return new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js";
+    script.onload = () => resolve(window.QRCode);
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+}
+
+async function openEquipmentQrPrint(equipmentId) {
+  const item = findEquipmentByCode(equipmentId);
+  if (!item) return;
+  elements.qrResult.innerHTML = `<div class="qr-print-card"><div id="qrCanvas"></div><strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(item.id)}</span><button class="secondary-button" id="qrScanFromPrint" type="button">스캔 화면으로</button></div>`;
+  openDialog(elements.qrDialog);
+  try {
+    const QRCode = await loadQrGeneratorLibrary();
+    new QRCode(document.querySelector("#qrCanvas"), { text: `${window.location.origin}${window.location.pathname}#qr=${item.id}`, width: 220, height: 220, colorDark: "#00462A", colorLight: "#ffffff" });
+  } catch (_) {
+    elements.qrResult.insertAdjacentHTML("beforeend", `<p class="form-error">QR 생성 라이브러리를 불러오지 못했습니다. 식별코드 ${escapeHtml(item.id)}를 사용해주세요.</p>`);
+  }
+  document.querySelector("#qrScanFromPrint")?.addEventListener("click", openQrDialog);
 }
 
 async function openReturnWorkspace(profile) {
@@ -640,6 +720,7 @@ function renderReturn(history = [], profile = {}) {
   </form>`;
   const form = elements.returnBody.querySelector("#returnForm");
   const select = form.elements.equipmentId;
+  if (scannedEquipmentId && [...select.options].some((option) => option.value === scannedEquipmentId)) select.value = scannedEquipmentId;
   const renderComponents = () => {
     const item = equipment.find((entry) => entry.id === select.value) || equipment[0];
     const components = item.components || [];
@@ -919,8 +1000,14 @@ document.querySelector("#themeToggle").addEventListener("click", () => {
   localStorage.setItem(themeKey, state.theme);
   applyTheme();
 });
+document.querySelector("#qrButton").addEventListener("click", openQrDialog);
+document.querySelector("#mobileRentButton").addEventListener("click", () => openStudentCheck("equipment"));
+document.querySelector("#mobileReturnButton").addEventListener("click", () => openStudentCheck("return"));
+document.querySelector("#qrManualButton").addEventListener("click", () => renderQrResult(findEquipmentByCode(elements.qrManualCode.value)));
+elements.qrDialog.addEventListener("click", (event) => { if (event.target.closest(".close-qr")) closeDialog(elements.qrDialog); });
+elements.qrDialog.addEventListener("close", () => { if (qrScanner) qrScanner.stop().catch(() => {}); qrScanner = null; });
 
-[elements.detailDialog, elements.basketDialog, elements.returnDialog, elements.authDialog, elements.operatorDialog].forEach((dialog) => {
+[elements.detailDialog, elements.basketDialog, elements.returnDialog, elements.authDialog, elements.operatorDialog, elements.qrDialog].forEach((dialog) => {
   dialog.addEventListener("close", () => document.body.classList.remove("modal-open"));
   dialog.addEventListener("click", (event) => {
     const rect = dialog.getBoundingClientRect();
@@ -934,3 +1021,7 @@ renderRentals();
 updateBasketCount();
 document.querySelector("#totalEquipment").textContent = equipment.reduce((sum, item) => sum + item.total, 0);
 initializeSupabaseEquipment();
+const initialQrCode = new URLSearchParams(window.location.hash.replace(/^#/, "")).get("qr");
+if (initialQrCode) {
+  window.setTimeout(() => { openQrDialog(); window.setTimeout(() => renderQrResult(findEquipmentByCode(initialQrCode)), 500); }, 0);
+}

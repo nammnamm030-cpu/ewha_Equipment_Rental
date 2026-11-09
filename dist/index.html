@@ -36,6 +36,7 @@
         <button class="return-button" id="returnButton" type="button" aria-haspopup="dialog">반납하기</button>
         <button class="utility-button" id="languageToggle" type="button" aria-label="언어 전환">EN</button>
         <button class="utility-button" id="themeToggle" type="button" aria-label="화면 모드 전환">☾</button>
+          <button class="utility-button qr-open-button" id="qrButton" type="button" aria-label="장비 QR 스캔">QR</button>
       </div>
     </header>
 
@@ -183,6 +184,24 @@
       </div>
       <div class="operator-body" id="operatorBody"></div>
     </dialog>
+
+    <dialog class="qr-dialog" id="qrDialog" aria-labelledby="qrTitle">
+      <div class="dialog-header">
+        <div><p class="section-kicker">EQUIPMENT QR</p><h2 id="qrTitle">장비 QR 스캔</h2></div>
+        <button class="icon-button close-qr" type="button" aria-label="QR 화면 닫기">×</button>
+      </div>
+      <div class="qr-body" id="qrBody">
+        <p class="qr-intro">장비에 붙은 QR을 스캔하면 대여 또는 반납 화면에 장비가 바로 추가됩니다.</p>
+        <div class="qr-reader" id="qrReader"></div>
+        <div class="qr-manual"><label for="qrManualCode">식별코드 직접 입력</label><div><input id="qrManualCode" placeholder="예: CAM-2026-001" /><button class="secondary-button" id="qrManualButton" type="button">확인</button></div></div>
+        <div id="qrResult" class="qr-result" aria-live="polite"></div>
+      </div>
+    </dialog>
+
+    <div class="mobile-sticky-actions" aria-label="빠른 대여·반납">
+      <button class="mobile-rent-cta" id="mobileRentButton" type="button">대여하기</button>
+      <button class="mobile-return-cta" id="mobileReturnButton" type="button">반납하기</button>
+    </div>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
   </body>
