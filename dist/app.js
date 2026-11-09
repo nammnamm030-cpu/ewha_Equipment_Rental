@@ -78,10 +78,16 @@ const fallbackEquipment = [
 let equipment = fallbackEquipment;
 equipment = equipment.map((item) => ({ ...item, maxDays: 14 }));
 let categories = ["전체", ...new Set(equipment.map((item) => item.category))];
-const storageKeys = { cart: "borrowbom-cart-v1", applications: "borrowbom-applications-v1", holidays: "borrowbom-holidays-v1" };
+const storageKeys = { cart: "borrowbom-cart-v1", applications: "borrowbom-applications-v1", holidays: "borrowbom-holidays-v1", operatorEquipment: "borrowbom-operator-equipment-v1" };
+const persistedOperatorEquipment = readStorage(storageKeys.operatorEquipment, []);
+if (persistedOperatorEquipment.length) {
+  equipment = equipment.concat(persistedOperatorEquipment);
+  categories = ["전체", ...new Set(equipment.map((item) => item.category))];
+}
 const studentProfileKey = "borrowbom-student-profile-v1";
 const languageKey = "borrowbom-language-v1";
 const themeKey = "borrowbom-theme-v1";
+const operatorEmail = "nammnamm030@ewhain.net";
 const translations = {
   ko: { brand: "이화여자대학교 조형예술대학 장비대여", equipment: "장비 찾기", guide: "이용 안내", rentals: "나의 대여", basket: "대여 바구니", return: "반납하기", rent: "대여하기", heroDesc: "필요한 장비를 찾고, 가능한 시간을 확인하고, 바로 빌린다.", search: "장비명, 용도를 검색해보세요", available: "대여 가능만", reset: "필터 초기화", detail: "상세 보기", unavailable: "대여 불가", addCart: "대여 바구니에 담기", cartEmpty: "대여 바구니가 비어 있어요", studentCheck: "학생 확인", rentalStudentCheck: "대여 학생 확인", returnStudentCheck: "반납 학생 확인", name: "이름", studentNumber: "학번", email: "학교 이메일", phone: "전화번호", purpose: "이용 목적", pastRentals: "과거 대여 내역", componentCheck: "구성품을 모두 확인했나요?", languageLabel: "한국어", themeLight: "라이트 모드", themeDark: "나이트 모드" },
   en: { brand: "Ewha Womans University College of Art Equipment Rental", equipment: "Find equipment", guide: "Guide", rentals: "My rentals", basket: "Rental cart", return: "Return", rent: "Rent", heroDesc: "Find the equipment you need, check availability, and rent it.", search: "Search equipment or use", available: "Available only", reset: "Reset filters", detail: "View details", unavailable: "Unavailable", addCart: "Add to rental cart", cartEmpty: "Your rental cart is empty", studentCheck: "Student check", rentalStudentCheck: "Rental student check", returnStudentCheck: "Return student check", name: "Name", studentNumber: "Student number", email: "School email", phone: "Phone", purpose: "Purpose", pastRentals: "Past rentals", componentCheck: "Have you checked all components?", languageLabel: "English", themeLight: "Light mode", themeDark: "Dark mode" }
@@ -141,7 +147,7 @@ const elements = {
   basketDialog: document.querySelector("#basketDialog"), basketBody: document.querySelector("#basketBody"),
   returnDialog: document.querySelector("#returnDialog"), returnBody: document.querySelector("#returnBody"),
   basketCount: document.querySelector("#basketCount"), rentalList: document.querySelector("#rentalList"),
-  toast: document.querySelector("#toast"), authDialog: document.querySelector("#authDialog")
+  toast: document.querySelector("#toast"), authDialog: document.querySelector("#authDialog"), operatorDialog: document.querySelector("#operatorDialog"), operatorBody: document.querySelector("#operatorBody")
 };
 
 function readStorage(key, fallback) {
@@ -238,6 +244,18 @@ const remoteVisuals = {
 const categorySymbols = { "카메라": "CAM", "빔프로젝터": "PROJ", "TV 모니터": "TV", "디빅스": "DVD", "브라켓": "BRKT", "HDMI 선": "HDMI" };
 function symbolForCategory(category) { return categorySymbols[category] || "ITEM"; }
 
+function imageUrlForCategory(category) {
+  const images = {
+    "카메라": "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=900&q=80",
+    "빔프로젝터": "https://images.unsplash.com/photo-1535016120720-40c646be5580?auto=format&fit=crop&w=900&q=80",
+    "TV 모니터": "https://images.unsplash.com/photo-1593784991095-a205069470b6?auto=format&fit=crop&w=900&q=80",
+    "디빅스": "https://images.unsplash.com/photo-1593784991095-a205069470b6?auto=format&fit=crop&w=900&q=80",
+    "브라켓": "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=900&q=80",
+    "HDMI 선": "https://images.unsplash.com/photo-1625842268584-8f3296236761?auto=format&fit=crop&w=900&q=80"
+  };
+  return images[category] || images["카메라"];
+}
+
 function normalizeRemoteEquipment(row) {
   const visual = remoteVisuals[row.equipment_type] || { symbol: "ITEM", color:"#eef5f0", maxDays: 14 };
   const displayParts = [row.model_name, row.spec].filter(Boolean);
@@ -301,6 +319,7 @@ function renderEquipment() {
   elements.grid.innerHTML = filtered.map((item) => `
     <article class="equipment-card">
       <div class="card-visual" style="--visual-bg:${item.color}">
+        <img class="equipment-photo" src="${item.imageUrl || imageUrlForCategory(item.category)}" alt="${escapeHtml(item.name)} 실제 장비 사진" loading="lazy" />
         <span class="stock-badge ${item.stock === 0 ? "unavailable" : ""}">${item.stock > 0 ? `대여 가능 ${item.stock}개` : "현재 대여 중"}</span>
         <span class="equipment-symbol" aria-hidden="true">${symbolForCategory(item.category)}</span>
         <span class="category-label">${item.category}</span>
@@ -330,7 +349,7 @@ function openDetail(id) {
   const defaultEnd = toLocalIso(addDays(today, Math.min(1, item.maxDays - 1)));
   elements.detailContent.innerHTML = `
     <div class="detail-layout">
-      <div class="detail-visual" style="--visual-bg:${item.color}"><span class="detail-symbol" aria-hidden="true">${symbolForCategory(item.category)}</span></div>
+      <div class="detail-visual" style="--visual-bg:${item.color}"><img class="detail-photo" src="${item.imageUrl || imageUrlForCategory(item.category)}" alt="${escapeHtml(item.name)} 실제 장비 사진" /><span class="detail-symbol" aria-hidden="true">${symbolForCategory(item.category)}</span></div>
       <div class="detail-pane">
         <div class="dialog-topline">
           <div><p class="section-kicker">${item.category} · ${item.id}</p><h2 id="detailTitle">${item.name}</h2></div>
@@ -506,13 +525,16 @@ function submitStudentCheck(event) {
   const email = validation.validateEmail(form.elements.requesterEmail.value);
   const studentNumber = validation.validateStudentNumber(form.elements.studentNumber.value);
   const error = form.querySelector("#authError");
-  const firstError = [name, studentNumber, email].find((result) => !result.valid);
+  const isOperatorLogin = email.value === operatorEmail;
+  const firstError = (isOperatorLogin ? [email] : [name, studentNumber, email]).find((result) => !result.valid);
   if (firstError) { error.textContent = firstError.message; return; }
-  const profile = { name: name.value, studentNumber: studentNumber.value, email: email.value };
+  const profile = { name: isOperatorLogin ? "운영자" : name.value, studentNumber: isOperatorLogin ? "OPERATOR" : studentNumber.value, email: email.value };
   writeStorage(studentProfileKey, profile);
   renderRentals();
   closeDialog(elements.authDialog);
-  if (elements.authDialog.dataset.next === "basket") {
+  if (email.value === operatorEmail) {
+    openOperatorDashboard(profile);
+  } else if (elements.authDialog.dataset.next === "basket") {
     renderBasket(); openDialog(elements.basketDialog); showToast("학생 확인이 완료되었습니다. 대여 신청을 시작해주세요.");
   } else if (elements.authDialog.dataset.next === "return") {
     openReturnWorkspace(profile);
@@ -520,6 +542,62 @@ function submitStudentCheck(event) {
     document.querySelector("#equipment").scrollIntoView({ behavior: "smooth" });
     showToast("학생 확인이 완료되었습니다. 대여할 장비를 선택해주세요.");
   }
+}
+
+function nextEquipmentCode(category) {
+  const prefixes = { "카메라": "CAM", "빔프로젝터": "BIM", "TV 모니터": "TV", "디빅스": "DIVX", "브라켓": "BRK", "HDMI 선": "HDMI" };
+  const prefix = prefixes[category] || "ETC";
+  const year = new Date().getFullYear();
+  const pattern = new RegExp(`^${prefix}-${year}-(\\d+)$`);
+  const max = equipment.reduce((highest, item) => {
+    const match = String(item.id || "").match(pattern);
+    return match ? Math.max(highest, Number(match[1])) : highest;
+  }, 0);
+  return `${prefix}-${year}-${String(max + 1).padStart(3, "0")}`;
+}
+
+function openOperatorDashboard(profile) {
+  renderOperatorDashboard(profile);
+  openDialog(elements.operatorDialog);
+}
+
+function renderOperatorDashboard(profile) {
+  const applications = state.applications;
+  const categoryOptions = ["카메라", "빔프로젝터", "TV 모니터", "디빅스", "브라켓", "HDMI 선"].map((category) => `<option value="${category}">${category}</option>`).join("");
+  const borrowerRows = applications.length ? applications.map((application) => `<tr><td>${escapeHtml(application.requesterName || "-")}</td><td>${escapeHtml(application.requesterEmail || "-")}</td><td>${escapeHtml(application.studentNumber || "-")}</td><td>${escapeHtml(application.name || "-")}</td><td>${escapeHtml(application.startDate || "-")} ~ ${escapeHtml(application.endDate || "-")}</td><td>${escapeHtml(application.status || "신청")}</td></tr>`).join("") : `<tr><td colspan="6">현재 대여 신청이 없습니다.</td></tr>`;
+  elements.operatorBody.innerHTML = `<div class="operator-summary"><div><span>등록 장비</span><strong>${equipment.length}대</strong></div><div><span>대여 신청</span><strong>${applications.length}건</strong></div><div><span>운영자</span><strong>${escapeHtml(profile.email)}</strong></div></div>
+    <section class="operator-panel"><div class="operator-panel-heading"><div><p class="section-kicker">ADD EQUIPMENT</p><h3>새 장비 등록</h3><p>등록하면 장비 식별코드가 자동으로 부여됩니다.</p></div></div>
+      <form id="operatorEquipmentForm" class="operator-form" novalidate>
+        <div class="field"><label for="operatorCategory">장비 종류</label><select id="operatorCategory" name="category" required>${categoryOptions}</select></div>
+        <div class="field"><label for="operatorName">장비명</label><input id="operatorName" name="name" placeholder="예: Canon EOS R10" required /></div>
+        <div class="field"><label for="operatorSpec">사양</label><input id="operatorSpec" name="spec" placeholder="예: 미러리스 카메라" /></div>
+        <div class="field"><label for="operatorLocation">보관 위치</label><input id="operatorLocation" name="location" value="413호" required /></div>
+        <div class="field"><label for="operatorStock">수량</label><input id="operatorStock" name="stock" type="number" min="1" value="1" required /></div>
+        <div class="field"><label for="operatorImage">실제 사진 URL</label><input id="operatorImage" name="imageUrl" type="url" placeholder="https://...jpg (선택)" /></div>
+        <div class="field operator-wide"><label for="operatorComponents">구성품</label><input id="operatorComponents" name="components" placeholder="쉼표로 구분: 본체, 배터리, 충전기" /></div>
+        <button class="primary-button" type="submit">장비 등록하기</button>
+        <p class="form-error" id="operatorError" role="alert"></p>
+      </form>
+    </section>
+    <section class="operator-panel"><div class="operator-panel-heading"><div><p class="section-kicker">BORROWERS</p><h3>대여자 목록</h3><p>운영자 계정에서만 전체 신청자를 확인할 수 있습니다.</p></div></div><div class="operator-table-wrap"><table class="operator-table"><thead><tr><th>이름</th><th>이메일</th><th>학번</th><th>장비</th><th>기간</th><th>상태</th></tr></thead><tbody>${borrowerRows}</tbody></table></div></section>`;
+  elements.operatorBody.querySelector("#operatorEquipmentForm").addEventListener("submit", (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const name = form.elements.name.value.trim();
+    const category = form.elements.category.value;
+    const error = form.querySelector("#operatorError");
+    if (!name) { error.textContent = "장비명을 입력해주세요."; return; }
+    const code = nextEquipmentCode(category);
+    const stock = Math.max(1, Number(form.elements.stock.value) || 1);
+    const newItem = { id: code, assetNo: code, name: `${name}${form.elements.spec.value.trim() ? ` · ${form.elements.spec.value.trim()}` : ""}`, category, symbol: symbolForCategory(category), stock, total: stock, description: `${name} · 관리번호 ${code}`, location: form.elements.location.value.trim() || "413호", deposit: "없음", maxDays: 14, color: "#e8f1ec", components: form.elements.components.value.split(",").map((value) => value.trim()).filter(Boolean), caution: "사용 후 구성품을 확인하고 보관 장소에 반납해주세요.", imageUrl: form.elements.imageUrl.value.trim() || imageUrlForCategory(category) };
+    equipment = [...equipment, newItem];
+    const customEquipment = readStorage(storageKeys.operatorEquipment, []);
+    writeStorage(storageKeys.operatorEquipment, [...customEquipment, newItem]);
+    categories = ["전체", ...new Set(equipment.map((item) => item.category))];
+    renderFilters(); renderEquipment();
+    renderOperatorDashboard(profile);
+    showToast(`${code} 장비가 등록되었습니다.`);
+  });
 }
 
 async function openReturnWorkspace(profile) {
@@ -829,6 +907,7 @@ elements.basketDialog.addEventListener("click", (event) => {
 });
 elements.returnDialog.addEventListener("click", (event) => { if (event.target.closest(".close-return")) closeDialog(elements.returnDialog); });
 elements.authDialog.addEventListener("click", (event) => { if (event.target.closest(".close-auth")) closeDialog(elements.authDialog); });
+elements.operatorDialog.addEventListener("click", (event) => { if (event.target.closest(".close-operator")) closeDialog(elements.operatorDialog); });
 document.querySelector("#authForm").addEventListener("submit", submitStudentCheck);
 document.querySelector("#languageToggle").addEventListener("click", () => {
   state.language = state.language === "ko" ? "en" : "ko";
@@ -841,7 +920,7 @@ document.querySelector("#themeToggle").addEventListener("click", () => {
   applyTheme();
 });
 
-[elements.detailDialog, elements.basketDialog, elements.returnDialog, elements.authDialog].forEach((dialog) => {
+[elements.detailDialog, elements.basketDialog, elements.returnDialog, elements.authDialog, elements.operatorDialog].forEach((dialog) => {
   dialog.addEventListener("close", () => document.body.classList.remove("modal-open"));
   dialog.addEventListener("click", (event) => {
     const rect = dialog.getBoundingClientRect();
