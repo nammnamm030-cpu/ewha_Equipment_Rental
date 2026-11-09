@@ -171,6 +171,7 @@ img, svg { display: block; }
 footer { padding: 55px 0 20px; color: #a9b8c7; background: var(--navy-950); }
 .footer-inner { display: flex; justify-content: space-between; gap: 30px; padding-bottom: 40px; }
 .footer-brand .brand-mark { background: var(--green-pale); color: var(--navy-950); }
+.footer-brand .brand-logo { width: 42px; height: 42px; opacity: .9; }
 .footer-brand .brand-copy strong { color: white; }
 .footer-inner > div:first-child > p { max-width: 380px; margin: 18px 0 0; font-size: 11px; }
 .footer-contact { display: flex; flex-direction: column; gap: 5px; font-size: 11px; text-align: right; }.footer-contact strong { margin-bottom: 5px; color: white; font-size: 13px; }
