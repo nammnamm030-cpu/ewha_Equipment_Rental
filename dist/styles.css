@@ -266,3 +266,29 @@ dialog::backdrop { background: rgba(5,20,36,.7); backdrop-filter: blur(3px); }
 [data-theme="dark"] .dialog-header { background: var(--surface); }
 [data-theme="dark"] .return-button, [data-theme="dark"] .utility-button, [data-theme="dark"] .icon-button { color: var(--ink); background: var(--surface); border-color: var(--line); }
 [data-theme="dark"] .hero-description, [data-theme="dark"] .text-action { color: #d8e8df; }
+
+/* Final layout polish: compact type rhythm and horizontal rental rail. */
+.trust-bar { grid-template-columns: repeat(3, 1fr); }
+.trust-bar div { min-height: 86px; }
+.trust-bar span { line-height: 1.5; }
+.rental-list { display: flex; gap: 16px; overflow-x: auto; padding: 4px 2px 14px; scroll-snap-type: x mandatory; scrollbar-width: thin; }
+.rental-item { flex: 0 0 min(560px, 82vw); min-height: 122px; scroll-snap-align: start; }
+.rental-empty { flex: 0 0 100%; }
+.section-heading h2, .guide-section h2 { line-height: 1.2; }
+.card-body h3 { line-height: 1.3; }
+.card-body > p { line-height: 1.55; }
+.search-box input, .availability-toggle, .filter-button, .secondary-button, .primary-button { font-family: inherit; }
+
+@media (max-width: 620px) {
+  .trust-bar { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .trust-bar div, .trust-bar div:not(:first-child) { min-height: 88px; padding: 14px 10px; }
+  .trust-bar strong { font-size: 19px; }
+  .trust-bar span { font-size: 9px; }
+  .rental-list { margin-right: -14px; margin-left: -14px; padding-right: 14px; padding-left: 14px; }
+  .rental-item { flex-basis: 86vw; grid-template-columns: 58px 1fr; gap: 12px; padding: 16px; }
+  .rental-item .rental-detail { display: block; grid-column: 2; }
+  .rental-item > .rental-detail:nth-child(4) { display: none; }
+  .status-chip { grid-column: 2; justify-self: start; }
+  .section-heading { gap: 14px; }
+  .section-heading p { line-height: 1.55; }
+}
