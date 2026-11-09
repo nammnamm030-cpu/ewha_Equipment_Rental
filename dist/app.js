@@ -114,6 +114,7 @@ const state = {
 let returnHistory = [];
 let qrScanner = null;
 let scannedEquipmentId = "";
+let operatorReturnName = "";
 const koreanHolidays = {
   "2026-01-01": "신정", "2026-02-16": "설날 연휴", "2026-02-17": "설날", "2026-02-18": "설날 연휴",
   "2026-03-01": "삼일절", "2026-03-02": "삼일절 대체공휴일", "2026-05-01": "근로자의 날", "2026-05-05": "어린이날",
@@ -581,6 +582,19 @@ function renderQrResult(item) {
     return;
   }
   scannedEquipmentId = item.id;
+  if (operatorReturnName) {
+    const matchingRental = state.applications.find((rental) => (rental.requestType || "대여") === "대여" && rental.requesterName === operatorReturnName && rental.equipmentId === item.id && !["returned", "rejected"].includes(rental.status));
+    elements.qrResult.innerHTML = `<div class="qr-result-card"><strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(item.id)} · 반납자 ${escapeHtml(operatorReturnName)}</span>${matchingRental ? `<button class="primary-button operator-return-confirm" type="button">이 장비 반납 완료 처리</button>` : `<p class="form-error">검색한 대여자의 진행 중인 대여 내역에서 이 장비를 찾을 수 없습니다.</p>`}</div>`;
+    elements.qrResult.querySelector(".operator-return-confirm")?.addEventListener("click", () => {
+      matchingRental.status = "returned";
+      writeStorage(storageKeys.applications, state.applications);
+      showToast(`${operatorReturnName}님의 ${item.id} 반납이 완료되었습니다.`);
+      operatorReturnName = "";
+      closeDialog(elements.qrDialog);
+      openOperatorDashboard(readStudentProfile());
+    });
+    return;
+  }
   elements.qrResult.innerHTML = `<div class="qr-result-card"><strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(item.id)} · ${item.stock > 0 ? "대여 가능" : "현재 대여 중"}</span><div class="qr-result-actions"><button class="primary-button qr-borrow-action" type="button" ${item.stock === 0 ? "disabled" : ""}>대여 페이지에 추가</button><button class="secondary-button qr-return-action" type="button">반납 페이지 열기</button></div></div>`;
   elements.qrResult.querySelector(".qr-borrow-action")?.addEventListener("click", () => {
     const today = toLocalIso(new Date());
@@ -633,6 +647,7 @@ function renderOperatorDashboard(profile) {
       </form>
     </section>
     <section class="operator-panel"><div class="operator-panel-heading"><div><p class="section-kicker">EQUIPMENT QR</p><h3>장비 QR 만들기</h3><p>QR을 출력해 장비에 붙이면 스캔으로 대여·반납을 시작할 수 있습니다.</p></div></div><div class="operator-qr-grid">${equipment.map((item) => `<button class="operator-qr-item" type="button" data-qr-equipment="${escapeHtml(item.id)}"><span>${escapeHtml(item.name)}</span><small>${escapeHtml(item.id)}</small></button>`).join("")}</div></section>
+    <section class="operator-panel"><div class="operator-panel-heading"><div><p class="section-kicker">RETURN CHECK-IN</p><h3>운영자 반납 처리</h3><p>대여자 이름을 검색한 뒤 장비 QR을 스캔해 반납 완료 처리합니다.</p></div></div><form id="operatorReturnForm" class="operator-return-form"><div class="field"><label for="operatorReturnName">대여자 이름</label><input id="operatorReturnName" placeholder="대여자 이름을 입력하세요" required /></div><button class="primary-button" type="submit">이름 확인 후 QR 스캔</button></form><p class="form-error" id="operatorReturnError" role="alert"></p></section>
     <section class="operator-panel"><div class="operator-panel-heading"><div><p class="section-kicker">BORROWERS</p><h3>대여자 목록</h3><p>운영자 계정에서만 전체 신청자를 확인할 수 있습니다.</p></div></div><div class="operator-table-wrap"><table class="operator-table"><thead><tr><th>이름</th><th>이메일</th><th>학번</th><th>장비</th><th>기간</th><th>상태</th></tr></thead><tbody>${borrowerRows}</tbody></table></div></section>`;
   elements.operatorBody.querySelector("#operatorEquipmentForm").addEventListener("submit", (event) => {
     event.preventDefault();
@@ -653,6 +668,16 @@ function renderOperatorDashboard(profile) {
     showToast(`${code} 장비가 등록되었습니다.`);
   });
   elements.operatorBody.querySelectorAll("[data-qr-equipment]").forEach((button) => button.addEventListener("click", () => openEquipmentQrPrint(button.dataset.qrEquipment)));
+  elements.operatorBody.querySelector("#operatorReturnForm").addEventListener("submit", (event) => {
+    event.preventDefault();
+    const name = event.currentTarget.elements.operatorReturnName.value.trim();
+    const error = elements.operatorBody.querySelector("#operatorReturnError");
+    const hasRental = state.applications.some((rental) => (rental.requestType || "대여") === "대여" && rental.requesterName === name && !["returned", "rejected"].includes(rental.status));
+    if (!name || !hasRental) { error.textContent = "진행 중인 해당 대여자를 찾을 수 없습니다."; return; }
+    operatorReturnName = name;
+    closeDialog(elements.operatorDialog);
+    openQrDialog();
+  });
 }
 
 function loadQrGeneratorLibrary() {
