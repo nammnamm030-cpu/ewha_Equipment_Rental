@@ -548,10 +548,10 @@ function submitStudentCheck(event) {
   }
 }
 
-function nextEquipmentCode(category) {
-  const prefixes = { "카메라": "CAM", "빔프로젝터": "BIM", "TV 모니터": "TV", "디빅스": "DIVX", "브라켓": "BRK", "HDMI 선": "HDMI" };
+function nextEquipmentCode(category, registrationYear = new Date().getFullYear()) {
+  const prefixes = { "카메라": "CAM", "빔프로젝터": "PROJ", "TV 모니터": "TV", "디빅스": "DVD", "브라켓": "BRKT", "HDMI 선": "HDMI" };
   const prefix = prefixes[category] || "ETC";
-  const year = new Date().getFullYear();
+  const year = String(registrationYear).slice(0, 4);
   const pattern = new RegExp(`^${prefix}-${year}-(\\d+)$`);
   const max = equipment.reduce((highest, item) => {
     const match = String(item.id || "").match(pattern);
@@ -633,11 +633,12 @@ function renderOperatorDashboard(profile) {
   const categoryOptions = ["카메라", "빔프로젝터", "TV 모니터", "디빅스", "브라켓", "HDMI 선"].map((category) => `<option value="${category}">${category}</option>`).join("");
   const borrowerRows = applications.length ? applications.map((application) => `<tr><td>${escapeHtml(application.requesterName || "-")}</td><td>${escapeHtml(application.requesterEmail || "-")}</td><td>${escapeHtml(application.studentNumber || "-")}</td><td>${escapeHtml(application.name || "-")}</td><td>${escapeHtml(application.startDate || "-")} ~ ${escapeHtml(application.endDate || "-")}</td><td>${escapeHtml(application.status || "신청")}</td></tr>`).join("") : `<tr><td colspan="6">현재 대여 신청이 없습니다.</td></tr>`;
   elements.operatorBody.innerHTML = `<div class="operator-summary"><div><span>등록 장비</span><strong>${equipment.length}대</strong></div><div><span>대여 신청</span><strong>${applications.length}건</strong></div><div><span>운영자</span><strong>${escapeHtml(profile.email)}</strong></div></div>
-    <section class="operator-panel"><div class="operator-panel-heading"><div><p class="section-kicker">ADD EQUIPMENT</p><h3>새 장비 등록</h3><p>등록하면 장비 식별코드가 자동으로 부여됩니다.</p></div></div>
+    <section class="operator-panel"><div class="operator-panel-heading"><div><p class="section-kicker">ADD EQUIPMENT</p><h3>새 장비 등록</h3><p>식별코드가 <strong>카테고리약어-등록연도-장비번호</strong> 형식으로 자동 부여됩니다. 예: CAM-2026-001</p></div></div>
       <form id="operatorEquipmentForm" class="operator-form" novalidate>
         <div class="field"><label for="operatorCategory">장비 종류</label><select id="operatorCategory" name="category" required>${categoryOptions}</select></div>
         <div class="field"><label for="operatorName">장비명</label><input id="operatorName" name="name" placeholder="예: Canon EOS R10" required /></div>
         <div class="field"><label for="operatorSpec">사양</label><input id="operatorSpec" name="spec" placeholder="예: 미러리스 카메라" /></div>
+        <div class="field"><label for="operatorRegistrationYear">등록 연도</label><input id="operatorRegistrationYear" name="registrationYear" type="number" min="2000" max="2100" value="${new Date().getFullYear()}" required /></div>
         <div class="field"><label for="operatorLocation">보관 위치</label><input id="operatorLocation" name="location" value="413호" required /></div>
         <div class="field"><label for="operatorStock">수량</label><input id="operatorStock" name="stock" type="number" min="1" value="1" required /></div>
         <div class="field"><label for="operatorImage">실제 사진 URL</label><input id="operatorImage" name="imageUrl" type="url" placeholder="https://...jpg (선택)" /></div>
@@ -656,7 +657,8 @@ function renderOperatorDashboard(profile) {
     const category = form.elements.category.value;
     const error = form.querySelector("#operatorError");
     if (!name) { error.textContent = "장비명을 입력해주세요."; return; }
-    const code = nextEquipmentCode(category);
+    const registrationYear = Math.min(2100, Math.max(2000, Number(form.elements.registrationYear.value) || new Date().getFullYear()));
+    const code = nextEquipmentCode(category, registrationYear);
     const stock = Math.max(1, Number(form.elements.stock.value) || 1);
     const newItem = { id: code, assetNo: code, name: `${name}${form.elements.spec.value.trim() ? ` · ${form.elements.spec.value.trim()}` : ""}`, category, symbol: symbolForCategory(category), stock, total: stock, description: `${name} · 관리번호 ${code}`, location: form.elements.location.value.trim() || "413호", deposit: "없음", maxDays: 14, color: "#e8f1ec", components: form.elements.components.value.split(",").map((value) => value.trim()).filter(Boolean), caution: "사용 후 구성품을 확인하고 보관 장소에 반납해주세요.", imageUrl: form.elements.imageUrl.value.trim() || imageUrlForCategory(category) };
     equipment = [...equipment, newItem];
