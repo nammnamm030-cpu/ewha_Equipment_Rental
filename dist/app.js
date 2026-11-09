@@ -351,7 +351,7 @@ function renderEquipment() {
         <span class="category-label">${item.category}</span>
       </div>
       <div class="card-body">
-        <span class="card-code">${item.id}</span>
+        <span class="card-code">${escapeHtml(item.assetNo || "")}</span>
         <h3>${item.name}</h3>
         <p>${item.description}</p>
         <div class="card-meta">
@@ -378,7 +378,7 @@ function openDetail(id) {
       <div class="detail-visual" style="--visual-bg:${item.color}"><img class="detail-photo" src="${imageUrlForEquipment(item)}" alt="${escapeHtml(item.name)} 실제 장비 사진" /><span class="detail-symbol" aria-hidden="true">${symbolForCategory(item.category)}</span></div>
       <div class="detail-pane">
         <div class="dialog-topline">
-          <div><p class="section-kicker">${item.category} · ${item.id}</p><h2 id="detailTitle">${item.name}</h2></div>
+          <div><p class="section-kicker">${item.category} · ${escapeHtml(item.assetNo || "")}</p><h2 id="detailTitle">${item.name}</h2></div>
           <button class="icon-button close-detail" type="button" aria-label="상세 창 닫기">×</button>
         </div>
         <p class="detail-description">${item.description}</p>
@@ -606,18 +606,18 @@ function renderQrResult(item) {
   scannedEquipmentId = item.id;
   if (operatorReturnName) {
     const matchingRental = state.applications.find((rental) => (rental.requestType || "대여") === "대여" && rental.requesterName === operatorReturnName && rental.equipmentId === item.id && !["returned", "rejected"].includes(rental.status));
-    elements.qrResult.innerHTML = `<div class="qr-result-card"><strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(item.id)} · 반납자 ${escapeHtml(operatorReturnName)}</span>${matchingRental ? `<button class="primary-button operator-return-confirm" type="button">이 장비 반납 완료 처리</button>` : `<p class="form-error">검색한 대여자의 진행 중인 대여 내역에서 이 장비를 찾을 수 없습니다.</p>`}</div>`;
+    elements.qrResult.innerHTML = `<div class="qr-result-card"><strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(item.assetNo || "")} · 반납자 ${escapeHtml(operatorReturnName)}</span>${matchingRental ? `<button class="primary-button operator-return-confirm" type="button">이 장비 반납 완료 처리</button>` : `<p class="form-error">검색한 대여자의 진행 중인 대여 내역에서 이 장비를 찾을 수 없습니다.</p>`}</div>`;
     elements.qrResult.querySelector(".operator-return-confirm")?.addEventListener("click", () => {
       matchingRental.status = "returned";
       writeStorage(storageKeys.applications, state.applications);
-      showToast(`${operatorReturnName}님의 ${item.id} 반납이 완료되었습니다.`);
+      showToast(`${operatorReturnName}님의 ${item.assetNo || "장비"} 반납이 완료되었습니다.`);
       operatorReturnName = "";
       closeDialog(elements.qrDialog);
       openOperatorDashboard(readStudentProfile());
     });
     return;
   }
-  elements.qrResult.innerHTML = `<div class="qr-result-card"><strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(item.id)} · ${item.stock > 0 ? "대여 가능" : "현재 대여 중"}</span><div class="qr-result-actions"><button class="primary-button qr-borrow-action" type="button" ${item.stock === 0 ? "disabled" : ""}>대여 페이지에 추가</button><button class="secondary-button qr-return-action" type="button">반납 페이지 열기</button></div></div>`;
+  elements.qrResult.innerHTML = `<div class="qr-result-card"><strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(item.assetNo || "")} · ${item.stock > 0 ? "대여 가능" : "현재 대여 중"}</span><div class="qr-result-actions"><button class="primary-button qr-borrow-action" type="button" ${item.stock === 0 ? "disabled" : ""}>대여 페이지에 추가</button><button class="secondary-button qr-return-action" type="button">반납 페이지 열기</button></div></div>`;
   elements.qrResult.querySelector(".qr-borrow-action")?.addEventListener("click", () => {
     const today = toLocalIso(new Date());
     const tomorrow = toLocalIso(addDays(new Date(), 1));
@@ -698,7 +698,7 @@ function renderOperatorDashboard(profile) {
   const pendingApplications = applications.filter((application) => (application.requestType || "대여") === "대여" && !["approved", "rejected", "returned", "반납 완료", "거절"].includes(application.status));
   const approvalCards = pendingApplications.length ? pendingApplications.map((application) => `<article class="approval-card"><div><strong>${escapeHtml(application.name || "-")}</strong><span>${escapeHtml(application.requesterName || "-")} · ${escapeHtml(application.studentNumber || "-")}</span><small>${escapeHtml(application.requesterEmail || "-")} · ${escapeHtml(application.startDate || "-")} ~ ${escapeHtml(application.endDate || "-")}</small></div><div class="approval-actions"><button class="primary-button" type="button" data-approve-id="${escapeHtml(application.id)}">승인</button><button class="secondary-button" type="button" data-reject-id="${escapeHtml(application.id)}">거절</button></div></article>`).join("") : `<p class="approval-empty">현재 승인 대기 중인 대여 신청이 없습니다.</p>`;
   const inventoryCategories = ["전체", ...new Set(equipment.map((item) => item.category).filter(Boolean))];
-  const inventoryRows = equipment.map((item) => `<label class="inventory-status-row" data-inventory-category="${escapeHtml(item.category || "기타")}"><span><strong>${escapeHtml(item.name)}</strong><small>${escapeHtml(item.assetNo || item.id)}</small></span><select data-equipment-status="${escapeHtml(item.id)}"><option value="대출 가능" ${(item.status || (item.stock > 0 ? "대출 가능" : "대출 중")) === "대출 가능" ? "selected" : ""}>대출 가능</option><option value="대출 중" ${(item.status || "") === "대출 중" ? "selected" : ""}>대출 중</option><option value="대출 불가" ${(item.status || "") === "대출 불가" ? "selected" : ""}>대출 불가</option></select></label>`).join("");
+  const inventoryRows = equipment.map((item) => `<label class="inventory-status-row" data-inventory-category="${escapeHtml(item.category || "기타")}"><span><strong>${escapeHtml(item.name)}</strong><small>${escapeHtml(item.assetNo || "식별번호 미등록")}</small></span><select data-equipment-status="${escapeHtml(item.id)}"><option value="대출 가능" ${(item.status || (item.stock > 0 ? "대출 가능" : "대출 중")) === "대출 가능" ? "selected" : ""}>대출 가능</option><option value="대출 중" ${(item.status || "") === "대출 중" ? "selected" : ""}>대출 중</option><option value="대출 불가" ${(item.status || "") === "대출 불가" ? "selected" : ""}>대출 불가</option></select></label>`).join("");
   const borrowerRows = applications.length ? applications.map((application) => `<tr class="${isOverdue(application) ? "overdue" : ""}"><td>${escapeHtml(application.requesterName || "-")}</td><td>${escapeHtml(application.requesterEmail || "-")}</td><td>${escapeHtml(application.studentNumber || "-")}</td><td>${escapeHtml(application.name || "-")}</td><td>${escapeHtml(application.startDate || "-")} ~ ${escapeHtml(application.endDate || "-")}</td><td>${escapeHtml(formatRequestTime(application))}</td><td>${isOverdue(application) ? "연체" : escapeHtml(statusLabels[application.status] || application.status || "신청")}</td></tr>`).join("") : `<tr><td colspan="7">현재 대여 신청이 없습니다.</td></tr>`;
   const returnPanel = `<section class="operator-panel"><div class="operator-panel-heading"><div><p class="section-kicker">RETURN CHECK-IN</p><h3>운영자 반납 처리</h3><p>대여자 이름을 검색한 뒤 반납할 장비를 여러 개 선택해 한 번에 처리합니다.</p></div></div><form id="operatorReturnForm" class="operator-return-form"><div class="field"><label for="operatorReturnName">대여자 이름</label><input id="operatorReturnName" placeholder="대여자 이름을 입력하세요" required /></div><button class="primary-button" type="submit">대여 목록 검색</button></form><p class="form-error" id="operatorReturnError" role="alert"></p><div id="operatorReturnCandidates" class="operator-return-candidates"></div></section>`;
   elements.operatorBody.innerHTML = `<div class="operator-summary"><div><span>등록 장비</span><strong>${equipment.length}대</strong></div><div><span>대여 신청</span><strong>${applications.length}건</strong></div><div><span>운영자</span><strong>${escapeHtml(profile.email)}</strong></div></div>
@@ -719,7 +719,7 @@ function renderOperatorDashboard(profile) {
         <p class="form-error" id="operatorError" role="alert"></p>
       </form>
     </section>
-    <section class="operator-panel"><div class="operator-panel-heading"><div><p class="section-kicker">EQUIPMENT QR</p><h3>장비 QR 만들기</h3><p>장비별 QR을 다운로드하거나 전체 QR을 한 번에 인쇄할 수 있습니다.</p></div></div><button class="secondary-button operator-print-all-qr" id="operatorPrintAllQr" type="button">전체 QR 인쇄</button><div class="operator-qr-grid">${equipment.map((item) => `<button class="operator-qr-item" type="button" data-qr-equipment="${escapeHtml(item.id)}"><span>${escapeHtml(item.name)}</span><small>${escapeHtml(item.id)}</small></button>`).join("")}</div></section>
+    <section class="operator-panel"><div class="operator-panel-heading"><div><p class="section-kicker">EQUIPMENT QR</p><h3>장비 QR 만들기</h3><p>장비별 QR을 다운로드하거나 전체 QR을 한 번에 인쇄할 수 있습니다.</p></div></div><button class="secondary-button operator-print-all-qr" id="operatorPrintAllQr" type="button">전체 QR 인쇄</button><div class="operator-qr-grid">${equipment.map((item) => `<button class="operator-qr-item" type="button" data-qr-equipment="${escapeHtml(item.id)}"><span>${escapeHtml(item.name)}</span><small>${escapeHtml(item.assetNo || "")}</small></button>`).join("")}</div></section>
     <section class="operator-panel"><div class="operator-panel-heading"><div><p class="section-kicker">BORROWERS</p><h3>대여자 목록</h3><p>운영자 계정에서만 전체 신청자를 확인할 수 있습니다.</p></div></div><div class="operator-table-wrap"><table class="operator-table"><thead><tr><th>이름</th><th>이메일</th><th>학번</th><th>장비</th><th>기간</th><th>신청 시간</th><th>상태</th></tr></thead><tbody>${borrowerRows}</tbody></table></div></section>`;
   elements.operatorBody.querySelector("#operatorEquipmentForm").addEventListener("submit", (event) => {
     event.preventDefault();
@@ -777,7 +777,7 @@ function renderOperatorDashboard(profile) {
   const renderOperatorReturnCandidates = (name) => {
     const candidates = state.applications.filter((rental) => (rental.requestType || "대여") === "대여" && rental.requesterName === name && !["returned", "rejected", "cancelled", "반납 완료", "거절", "취소"].includes(rental.status));
     const target = elements.operatorBody.querySelector("#operatorReturnCandidates");
-    target.innerHTML = candidates.length ? `<div class="operator-return-checklist">${candidates.map((rental) => `<label><input type="checkbox" value="${escapeHtml(rental.id)}" data-operator-return-item /><span><strong>${escapeHtml(rental.name)}</strong><small>${escapeHtml(rental.equipmentId)} · ${escapeHtml(rental.startDate)} ~ ${escapeHtml(rental.endDate)}</small></span></label>`).join("")}<button class="primary-button operator-return-bulk" type="button">선택 장비 반납 처리</button></div>` : `<p class="approval-empty">진행 중인 대여 목록이 없습니다.</p>`;
+    target.innerHTML = candidates.length ? `<div class="operator-return-checklist">${candidates.map((rental) => { const linked = equipment.find((item) => item.id === rental.equipmentId); return `<label><input type="checkbox" value="${escapeHtml(rental.id)}" data-operator-return-item /><span><strong>${escapeHtml(rental.name)}</strong><small>${escapeHtml(linked?.assetNo || rental.assetNo || "")} · ${escapeHtml(rental.startDate)} ~ ${escapeHtml(rental.endDate)}</small></span></label>`; }).join("")}<button class="primary-button operator-return-bulk" type="button">선택 장비 반납 처리</button></div>` : `<p class="approval-empty">진행 중인 대여 목록이 없습니다.</p>`;
     target.querySelector(".operator-return-bulk")?.addEventListener("click", async () => {
       const selected = [...target.querySelectorAll("[data-operator-return-item]:checked")].map((checkbox) => state.applications.find((entry) => entry.id === checkbox.value)).filter(Boolean);
       if (!selected.length) return;
@@ -818,13 +818,13 @@ async function openEquipmentQrPrint(equipmentId) {
   const item = findEquipmentByCode(equipmentId);
   if (!item) return;
   closeDialog(elements.operatorDialog);
-  elements.qrResult.innerHTML = `<div class="qr-print-card"><div id="qrCanvas"></div><strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(item.id)}</span><div class="qr-print-actions"><button class="primary-button" id="qrPrintButton" type="button">인쇄하기</button><button class="secondary-button" id="qrDownloadButton" type="button">PNG 다운로드</button><button class="secondary-button" id="qrScanFromPrint" type="button">스캔 화면으로</button></div></div>`;
+  elements.qrResult.innerHTML = `<div class="qr-print-card"><div id="qrCanvas"></div><strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(item.assetNo || "")}</span><div class="qr-print-actions"><button class="primary-button" id="qrPrintButton" type="button">인쇄하기</button><button class="secondary-button" id="qrDownloadButton" type="button">PNG 다운로드</button><button class="secondary-button" id="qrScanFromPrint" type="button">스캔 화면으로</button></div></div>`;
   openDialog(elements.qrDialog);
   try {
     const QRCode = await loadQrGeneratorLibrary();
     new QRCode(document.querySelector("#qrCanvas"), { text: `${window.location.origin}${window.location.pathname}#qr=${item.id}`, width: 220, height: 220, colorDark: "#00462A", colorLight: "#ffffff" });
   } catch (_) {
-    elements.qrResult.insertAdjacentHTML("beforeend", `<p class="form-error">QR 생성 라이브러리를 불러오지 못했습니다. 식별코드 ${escapeHtml(item.id)}를 사용해주세요.</p>`);
+    elements.qrResult.insertAdjacentHTML("beforeend", `<p class="form-error">QR 생성 라이브러리를 불러오지 못했습니다. 식별코드 ${escapeHtml(item.assetNo || "")}를 사용해주세요.</p>`);
   }
   document.querySelector("#qrPrintButton")?.addEventListener("click", () => window.print());
   document.querySelector("#qrDownloadButton")?.addEventListener("click", () => downloadQrCode(item));
@@ -838,8 +838,8 @@ function downloadQrCode(item) {
   canvas.width = 440; canvas.height = 480;
   const context = canvas.getContext("2d");
   context.fillStyle = "#ffffff"; context.fillRect(0, 0, canvas.width, canvas.height);
-  if (source.tagName === "CANVAS") context.drawImage(source, 110, 20, 220, 220); else { const image = new Image(); image.onload = () => { context.drawImage(image, 110, 20, 220, 220); context.fillStyle = "#00462A"; context.font = "bold 18px sans-serif"; context.textAlign = "center"; context.fillText(item.name, 220, 285); context.fillText(item.id, 220, 320); const link = document.createElement("a"); link.download = `${item.id}-QR.png`; link.href = canvas.toDataURL("image/png"); link.click(); }; image.src = source.src; return; }
-  context.fillStyle = "#00462A"; context.font = "bold 18px sans-serif"; context.textAlign = "center"; context.fillText(item.name, 220, 285); context.fillText(item.id, 220, 320); const link = document.createElement("a"); link.download = `${item.id}-QR.png`; link.href = canvas.toDataURL("image/png"); link.click();
+  if (source.tagName === "CANVAS") context.drawImage(source, 110, 20, 220, 220); else { const image = new Image(); image.onload = () => { context.drawImage(image, 110, 20, 220, 220); context.fillStyle = "#00462A"; context.font = "bold 18px sans-serif"; context.textAlign = "center"; context.fillText(item.name, 220, 285); context.fillText(item.assetNo || "", 220, 320); const link = document.createElement("a"); link.download = `${item.assetNo || "equipment"}-QR.png`; link.href = canvas.toDataURL("image/png"); link.click(); }; image.src = source.src; return; }
+  context.fillStyle = "#00462A"; context.font = "bold 18px sans-serif"; context.textAlign = "center"; context.fillText(item.name, 220, 285); context.fillText(item.assetNo || "", 220, 320); const link = document.createElement("a"); link.download = `${item.assetNo || "equipment"}-QR.png`; link.href = canvas.toDataURL("image/png"); link.click();
 }
 
 async function openAllEquipmentQrPrint() {
@@ -849,7 +849,7 @@ async function openAllEquipmentQrPrint() {
   try {
     const QRCode = await loadQrGeneratorLibrary();
     const grid = document.querySelector("#qrBulkGrid");
-    equipment.forEach((item) => { const card = document.createElement("article"); card.className = "qr-bulk-item"; card.innerHTML = `<div class="qr-bulk-code"></div><strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(item.id)}</span>`; grid.appendChild(card); new QRCode(card.querySelector(".qr-bulk-code"), { text: `${window.location.origin}${window.location.pathname}#qr=${item.id}`, width: 150, height: 150, colorDark: "#00462A", colorLight: "#ffffff" }); });
+    equipment.forEach((item) => { const card = document.createElement("article"); card.className = "qr-bulk-item"; card.innerHTML = `<div class="qr-bulk-code"></div><strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(item.assetNo || "")}</span>`; grid.appendChild(card); new QRCode(card.querySelector(".qr-bulk-code"), { text: `${window.location.origin}${window.location.pathname}#qr=${item.id}`, width: 150, height: 150, colorDark: "#00462A", colorLight: "#ffffff" }); });
   } catch (_) { document.querySelector("#qrBulkGrid").innerHTML = `<p class="form-error">QR 생성 라이브러리를 불러오지 못했습니다.</p>`; }
   document.querySelector("#qrBulkPrintButton")?.addEventListener("click", () => window.print());
 }
@@ -878,7 +878,7 @@ async function openReturnWorkspace(profile) {
 
 function renderReturn(history = [], profile = {}) {
   const entries = history;
-  const equipmentOptions = entries.map((entry) => `<label class="return-item-option"><input type="checkbox" name="equipmentIds" value="${escapeHtml(entry.equipmentId)}" data-return-item /><span><strong>${escapeHtml(entry.name)}</strong><small>${escapeHtml(entry.assetNo || entry.equipmentId)}${entry.startDate ? ` · ${escapeHtml(entry.startDate)} ~ ${escapeHtml(entry.endDate || "")}` : ""}</small></span></label>`).join("");
+  const equipmentOptions = entries.map((entry) => `<label class="return-item-option"><input type="checkbox" name="equipmentIds" value="${escapeHtml(entry.equipmentId)}" data-return-item /><span><strong>${escapeHtml(entry.name)}</strong><small>${escapeHtml(entry.assetNo || "식별번호 미등록")}${entry.startDate ? ` · ${escapeHtml(entry.startDate)} ~ ${escapeHtml(entry.endDate || "")}` : ""}</small></span></label>`).join("");
   elements.returnBody.innerHTML = `<div class="return-student-context"><strong>${escapeHtml(profile.name || "학생")}님의 반납 신청</strong><span>${history.length ? "내가 대여한 장비를 여러 개 선택한 뒤 한 번에 신청할 수 있어요." : "현재 반납할 수 있는 본인 대여 장비가 없습니다."}</span></div>${history.length ? `<div class="return-history-note">현재 반납 가능한 대여 ${history.length}건을 찾았어요.</div>` : `<div class="return-history-empty">본인 대여 내역이 있을 때만 반납 장비가 표시됩니다.</div>`}<form id="returnForm" novalidate>
     <div class="return-equipment return-multi-list"><label class="return-list-label">반납할 장비 <span aria-hidden="true">*</span></label>${equipmentOptions}</div>
     <div id="returnComponents" class="component-checklist" aria-live="polite"></div>
@@ -1093,7 +1093,7 @@ function renderRentals() {
     return `
     <article class="rental-item">
       <div class="rental-thumb" style="--thumb-bg:${rental.color}" aria-hidden="true">${symbolForCategory(category)}</div>
-      <div class="rental-name"><strong>${escapeHtml(rental.name)}</strong><span>${escapeHtml(rental.equipmentId)} · ${escapeHtml(rental.purpose)}</span></div>
+      <div class="rental-name"><strong>${escapeHtml(rental.name)}</strong><span>${escapeHtml(rental.assetNo || linkedItem?.assetNo || "식별번호 미등록")} · ${escapeHtml(rental.purpose)}</span></div>
       <div class="rental-detail"><small>대여 기간</small><strong>${formatDate(rental.startDate)} – ${formatDate(rental.endDate)}</strong></div>
       <div class="rental-detail"><small>수령 장소</small><strong>${escapeHtml(rental.location)}</strong></div>
       <span class="status-chip ${rental.status}">${statusLabels[rental.status] || rental.status}</span>
