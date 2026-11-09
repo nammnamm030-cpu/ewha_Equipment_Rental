@@ -666,8 +666,12 @@ function openOperatorDashboard(profile) {
 function renderOperatorDashboard(profile) {
   const applications = state.applications;
   const categoryOptions = ["카메라", "빔프로젝터", "TV 모니터", "디빅스", "브라켓", "HDMI 선"].map((category) => `<option value="${category}">${category}</option>`).join("");
-  const borrowerRows = applications.length ? applications.map((application) => `<tr><td>${escapeHtml(application.requesterName || "-")}</td><td>${escapeHtml(application.requesterEmail || "-")}</td><td>${escapeHtml(application.studentNumber || "-")}</td><td>${escapeHtml(application.name || "-")}</td><td>${escapeHtml(application.startDate || "-")} ~ ${escapeHtml(application.endDate || "-")}</td><td>${escapeHtml(application.status || "신청")}</td></tr>`).join("") : `<tr><td colspan="6">현재 대여 신청이 없습니다.</td></tr>`;
+  const statusLabels = { applied: "승인 대기", 신청: "승인 대기", approved: "승인", rejected: "거절", returned: "반납 완료" };
+  const pendingApplications = applications.filter((application) => (application.requestType || "대여") === "대여" && !["approved", "rejected", "returned", "반납 완료", "거절"].includes(application.status));
+  const approvalCards = pendingApplications.length ? pendingApplications.map((application) => `<article class="approval-card"><div><strong>${escapeHtml(application.name || "-")}</strong><span>${escapeHtml(application.requesterName || "-")} · ${escapeHtml(application.studentNumber || "-")}</span><small>${escapeHtml(application.requesterEmail || "-")} · ${escapeHtml(application.startDate || "-")} ~ ${escapeHtml(application.endDate || "-")}</small></div><div class="approval-actions"><button class="primary-button" type="button" data-approve-id="${escapeHtml(application.id)}">승인</button><button class="secondary-button" type="button" data-reject-id="${escapeHtml(application.id)}">거절</button></div></article>`).join("") : `<p class="approval-empty">현재 승인 대기 중인 대여 신청이 없습니다.</p>`;
+  const borrowerRows = applications.length ? applications.map((application) => `<tr><td>${escapeHtml(application.requesterName || "-")}</td><td>${escapeHtml(application.requesterEmail || "-")}</td><td>${escapeHtml(application.studentNumber || "-")}</td><td>${escapeHtml(application.name || "-")}</td><td>${escapeHtml(application.startDate || "-")} ~ ${escapeHtml(application.endDate || "-")}</td><td>${escapeHtml(statusLabels[application.status] || application.status || "신청")}</td></tr>`).join("") : `<tr><td colspan="6">현재 대여 신청이 없습니다.</td></tr>`;
   elements.operatorBody.innerHTML = `<div class="operator-summary"><div><span>등록 장비</span><strong>${equipment.length}대</strong></div><div><span>대여 신청</span><strong>${applications.length}건</strong></div><div><span>운영자</span><strong>${escapeHtml(profile.email)}</strong></div></div>
+    <section class="operator-panel"><div class="operator-panel-heading"><div><p class="section-kicker">APPROVALS</p><h3>대여 신청 승인</h3><p>학생이 신청한 대여를 확인한 뒤 승인 또는 거절할 수 있습니다.</p></div></div><div class="approval-list">${approvalCards}</div></section>
     <section class="operator-panel"><div class="operator-panel-heading"><div><p class="section-kicker">ADD EQUIPMENT</p><h3>새 장비 등록</h3><p>식별코드가 <strong>카테고리약어-등록연도-장비번호</strong> 형식으로 자동 부여됩니다. 예: CAM-2026-001</p></div></div>
       <form id="operatorEquipmentForm" class="operator-form" novalidate>
         <div class="field"><label for="operatorCategory">장비 종류</label><select id="operatorCategory" name="category" required>${categoryOptions}</select></div>
@@ -705,6 +709,19 @@ function renderOperatorDashboard(profile) {
     showToast(`${code} 장비가 등록되었습니다.`);
   });
   elements.operatorBody.querySelectorAll("[data-qr-equipment]").forEach((button) => button.addEventListener("click", () => openEquipmentQrPrint(button.dataset.qrEquipment)));
+  const updateApproval = async (applicationId, nextStatus) => {
+    const application = state.applications.find((entry) => entry.id === applicationId);
+    if (!application) return;
+    const adapter = window.BorrowbomSupabase;
+    if (adapter && adapter.isReady() && application.remoteRequestId) await adapter.updateRentalRequestStatus(application.remoteRequestId, nextStatus === "approved" ? "승인" : "거절");
+    application.status = nextStatus;
+    writeStorage(storageKeys.applications, state.applications);
+    renderRentals();
+    renderOperatorDashboard(profile);
+    showToast(nextStatus === "approved" ? "대여 신청을 승인했습니다." : "대여 신청을 거절했습니다.");
+  };
+  elements.operatorBody.querySelectorAll("[data-approve-id]").forEach((button) => button.addEventListener("click", () => updateApproval(button.dataset.approveId, "approved")));
+  elements.operatorBody.querySelectorAll("[data-reject-id]").forEach((button) => button.addEventListener("click", () => updateApproval(button.dataset.rejectId, "rejected")));
   elements.operatorBody.querySelector("#operatorReturnForm").addEventListener("submit", (event) => {
     event.preventDefault();
     const name = event.currentTarget.elements.operatorReturnName.value.trim();
