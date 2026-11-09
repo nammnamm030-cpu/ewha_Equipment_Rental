@@ -719,7 +719,7 @@ function renderOperatorDashboard(profile) {
         <p class="form-error" id="operatorError" role="alert"></p>
       </form>
     </section>
-    <section class="operator-panel"><div class="operator-panel-heading"><div><p class="section-kicker">EQUIPMENT QR</p><h3>장비 QR 만들기</h3><p>QR을 출력해 장비에 붙이면 스캔으로 대여·반납을 시작할 수 있습니다.</p></div></div><div class="operator-qr-grid">${equipment.map((item) => `<button class="operator-qr-item" type="button" data-qr-equipment="${escapeHtml(item.id)}"><span>${escapeHtml(item.name)}</span><small>${escapeHtml(item.id)}</small></button>`).join("")}</div></section>
+    <section class="operator-panel"><div class="operator-panel-heading"><div><p class="section-kicker">EQUIPMENT QR</p><h3>장비 QR 만들기</h3><p>장비별 QR을 다운로드하거나 전체 QR을 한 번에 인쇄할 수 있습니다.</p></div></div><button class="secondary-button operator-print-all-qr" id="operatorPrintAllQr" type="button">전체 QR 인쇄</button><div class="operator-qr-grid">${equipment.map((item) => `<button class="operator-qr-item" type="button" data-qr-equipment="${escapeHtml(item.id)}"><span>${escapeHtml(item.name)}</span><small>${escapeHtml(item.id)}</small></button>`).join("")}</div></section>
     <section class="operator-panel"><div class="operator-panel-heading"><div><p class="section-kicker">BORROWERS</p><h3>대여자 목록</h3><p>운영자 계정에서만 전체 신청자를 확인할 수 있습니다.</p></div></div><div class="operator-table-wrap"><table class="operator-table"><thead><tr><th>이름</th><th>이메일</th><th>학번</th><th>장비</th><th>기간</th><th>신청 시간</th><th>상태</th></tr></thead><tbody>${borrowerRows}</tbody></table></div></section>`;
   elements.operatorBody.querySelector("#operatorEquipmentForm").addEventListener("submit", (event) => {
     event.preventDefault();
@@ -741,6 +741,7 @@ function renderOperatorDashboard(profile) {
     showToast(`${code} 장비가 등록되었습니다.`);
   });
   elements.operatorBody.querySelectorAll("[data-qr-equipment]").forEach((button) => button.addEventListener("click", () => openEquipmentQrPrint(button.dataset.qrEquipment)));
+  elements.operatorBody.querySelector("#operatorPrintAllQr")?.addEventListener("click", openAllEquipmentQrPrint);
   elements.operatorBody.querySelectorAll("[data-equipment-status]").forEach((select) => select.addEventListener("change", async (event) => {
     const item = equipment.find((entry) => entry.id === event.currentTarget.dataset.equipmentStatus);
     if (!item) return;
@@ -817,7 +818,7 @@ async function openEquipmentQrPrint(equipmentId) {
   const item = findEquipmentByCode(equipmentId);
   if (!item) return;
   closeDialog(elements.operatorDialog);
-  elements.qrResult.innerHTML = `<div class="qr-print-card"><div id="qrCanvas"></div><strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(item.id)}</span><button class="secondary-button" id="qrScanFromPrint" type="button">스캔 화면으로</button></div>`;
+  elements.qrResult.innerHTML = `<div class="qr-print-card"><div id="qrCanvas"></div><strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(item.id)}</span><div class="qr-print-actions"><button class="primary-button" id="qrPrintButton" type="button">인쇄하기</button><button class="secondary-button" id="qrDownloadButton" type="button">PNG 다운로드</button><button class="secondary-button" id="qrScanFromPrint" type="button">스캔 화면으로</button></div></div>`;
   openDialog(elements.qrDialog);
   try {
     const QRCode = await loadQrGeneratorLibrary();
@@ -825,7 +826,32 @@ async function openEquipmentQrPrint(equipmentId) {
   } catch (_) {
     elements.qrResult.insertAdjacentHTML("beforeend", `<p class="form-error">QR 생성 라이브러리를 불러오지 못했습니다. 식별코드 ${escapeHtml(item.id)}를 사용해주세요.</p>`);
   }
+  document.querySelector("#qrPrintButton")?.addEventListener("click", () => window.print());
+  document.querySelector("#qrDownloadButton")?.addEventListener("click", () => downloadQrCode(item));
   document.querySelector("#qrScanFromPrint")?.addEventListener("click", openQrDialog);
+}
+
+function downloadQrCode(item) {
+  const source = document.querySelector("#qrCanvas canvas, #qrCanvas img");
+  if (!source) return;
+  const canvas = document.createElement("canvas");
+  canvas.width = 440; canvas.height = 480;
+  const context = canvas.getContext("2d");
+  context.fillStyle = "#ffffff"; context.fillRect(0, 0, canvas.width, canvas.height);
+  if (source.tagName === "CANVAS") context.drawImage(source, 110, 20, 220, 220); else { const image = new Image(); image.onload = () => { context.drawImage(image, 110, 20, 220, 220); context.fillStyle = "#00462A"; context.font = "bold 18px sans-serif"; context.textAlign = "center"; context.fillText(item.name, 220, 285); context.fillText(item.id, 220, 320); const link = document.createElement("a"); link.download = `${item.id}-QR.png`; link.href = canvas.toDataURL("image/png"); link.click(); }; image.src = source.src; return; }
+  context.fillStyle = "#00462A"; context.font = "bold 18px sans-serif"; context.textAlign = "center"; context.fillText(item.name, 220, 285); context.fillText(item.id, 220, 320); const link = document.createElement("a"); link.download = `${item.id}-QR.png`; link.href = canvas.toDataURL("image/png"); link.click();
+}
+
+async function openAllEquipmentQrPrint() {
+  closeDialog(elements.operatorDialog);
+  elements.qrResult.innerHTML = `<div class="qr-bulk-print"><div class="qr-bulk-toolbar"><strong>전체 장비 QR</strong><button class="primary-button" id="qrBulkPrintButton" type="button">전체 인쇄</button></div><div class="qr-bulk-grid" id="qrBulkGrid"></div></div>`;
+  openDialog(elements.qrDialog);
+  try {
+    const QRCode = await loadQrGeneratorLibrary();
+    const grid = document.querySelector("#qrBulkGrid");
+    equipment.forEach((item) => { const card = document.createElement("article"); card.className = "qr-bulk-item"; card.innerHTML = `<div class="qr-bulk-code"></div><strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(item.id)}</span>`; grid.appendChild(card); new QRCode(card.querySelector(".qr-bulk-code"), { text: `${window.location.origin}${window.location.pathname}#qr=${item.id}`, width: 150, height: 150, colorDark: "#00462A", colorLight: "#ffffff" }); });
+  } catch (_) { document.querySelector("#qrBulkGrid").innerHTML = `<p class="form-error">QR 생성 라이브러리를 불러오지 못했습니다.</p>`; }
+  document.querySelector("#qrBulkPrintButton")?.addEventListener("click", () => window.print());
 }
 
 async function openReturnWorkspace(profile) {
