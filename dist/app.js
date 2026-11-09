@@ -840,7 +840,7 @@ async function openReturnWorkspace(profile) {
       })));
     }
   } else {
-    history = state.applications.filter((application) => (application.requestType || "대여") === "대여" && !["returned", "rejected"].includes(application.status) && String(application.requesterEmail || "").trim().toLowerCase() === String(profile.email || "").trim().toLowerCase() && String(application.studentNumber || "").trim().toUpperCase() === String(profile.studentNumber || "").trim().toUpperCase() && application.requesterName === profile.name).map((application) => ({
+    history = state.applications.filter((application) => (application.requestType || "대여") === "대여" && !["returned", "rejected", "cancelled", "반납 완료", "거절", "취소"].includes(application.status) && String(application.requesterEmail || "").trim().toLowerCase() === String(profile.email || "").trim().toLowerCase() && String(application.studentNumber || "").trim().toUpperCase() === String(profile.studentNumber || "").trim().toUpperCase() && application.requesterName === profile.name).map((application) => ({
       equipmentId: application.equipmentId, assetNo: application.assetNo, name: application.name,
       startDate: application.startDate, endDate: application.endDate, status: application.status, requestId: application.id
     }));
@@ -851,9 +851,9 @@ async function openReturnWorkspace(profile) {
 }
 
 function renderReturn(history = [], profile = {}) {
-  const entries = history.length ? history : equipment.map((item) => ({ equipmentId: item.id, assetNo: item.assetNo, name: item.name }));
+  const entries = history;
   const equipmentOptions = entries.map((entry) => `<label class="return-item-option"><input type="checkbox" name="equipmentIds" value="${escapeHtml(entry.equipmentId)}" data-return-item /><span><strong>${escapeHtml(entry.name)}</strong><small>${escapeHtml(entry.assetNo || entry.equipmentId)}${entry.startDate ? ` · ${escapeHtml(entry.startDate)} ~ ${escapeHtml(entry.endDate || "")}` : ""}</small></span></label>`).join("");
-  elements.returnBody.innerHTML = `<div class="return-student-context"><strong>${escapeHtml(profile.name || "학생")}님의 반납 신청</strong><span>${history.length ? "반납할 장비를 여러 개 선택한 뒤 한 번에 신청할 수 있어요." : "반납할 장비를 아래 목록에서 여러 개 선택할 수 있어요."}</span></div>${history.length ? `<div class="return-history-note">과거 대여 ${history.length}건을 찾았어요.</div>` : ""}<form id="returnForm" novalidate>
+  elements.returnBody.innerHTML = `<div class="return-student-context"><strong>${escapeHtml(profile.name || "학생")}님의 반납 신청</strong><span>${history.length ? "내가 대여한 장비를 여러 개 선택한 뒤 한 번에 신청할 수 있어요." : "현재 반납할 수 있는 본인 대여 장비가 없습니다."}</span></div>${history.length ? `<div class="return-history-note">현재 반납 가능한 대여 ${history.length}건을 찾았어요.</div>` : `<div class="return-history-empty">본인 대여 내역이 있을 때만 반납 장비가 표시됩니다.</div>`}<form id="returnForm" novalidate>
     <div class="return-equipment return-multi-list"><label class="return-list-label">반납할 장비 <span aria-hidden="true">*</span></label>${equipmentOptions}</div>
     <div id="returnComponents" class="component-checklist" aria-live="polite"></div>
     <div class="student-fields">
@@ -863,7 +863,7 @@ function renderReturn(history = [], profile = {}) {
       <div class="field"><label for="returnerStudentNumber">학번 <span aria-hidden="true">*</span></label><input id="returnerStudentNumber" name="studentNumber" type="text" inputmode="text" pattern="[A-Za-z0-9]{4,20}" minlength="4" maxlength="20" value="${escapeHtml(profile.studentNumber || "")}" placeholder="영문·숫자 4~20자" required /></div>
     </div>
     <p class="form-error" id="returnError" role="alert"></p>
-    <button class="primary-button return-submit" type="submit">반납 신청하기</button>
+    <button class="primary-button return-submit" type="submit" ${history.length ? "" : "disabled"}>반납 신청하기</button>
   </form>`;
   const form = elements.returnBody.querySelector("#returnForm");
   const renderComponents = () => {
