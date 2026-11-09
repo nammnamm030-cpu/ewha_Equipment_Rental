@@ -19,7 +19,9 @@
 
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
-body { margin: 0; color: var(--ink); background: var(--surface); font-family: Pretendard, "Noto Sans KR", "Apple SD Gothic Neo", system-ui, sans-serif; line-height: 1.6; }
+body { position: relative; margin: 0; color: var(--ink); background: var(--surface); font-family: Pretendard, "Noto Sans KR", "Apple SD Gothic Neo", system-ui, sans-serif; line-height: 1.6; }
+body::before { position: fixed; z-index: 0; inset: 0; content: ""; pointer-events: none; background: url("assets/ewha-logo.png") no-repeat right 180px / min(720px, 58vw); opacity: .055; }
+body > * { position: relative; z-index: 1; }
 body.modal-open { overflow: hidden; }
 button, input, textarea { font: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
@@ -240,7 +242,7 @@ dialog::backdrop { background: rgba(5,20,36,.7); backdrop-filter: blur(3px); }
 
 @media (max-width: 620px) {
   .header-inner, .hero-inner, .equipment-section, .rentals-section, .footer-inner, .copyright { width: min(100% - 28px, 1180px); }
-  .header-inner { min-height: 65px; }.brand-copy strong { font-size: 18px; }.brand-logo { width: 34px; height: 34px; flex-basis: 34px; }.basket-button > span:not(.basket-count) { display: none; }
+  .header-inner { min-height: 65px; }.brand-copy strong { font-size: 18px; }.brand-logo { width: 34px; height: 34px; flex-basis: 34px; }.basket-button > span:not(.basket-count) { display: none; } body::before { background-position: 150px 240px; background-size: 520px; opacity: .045; }
   .hero-inner { padding-top: 54px; }.hero h1 { font-size: 42px; }.hero-description { font-size: 15px; }.hero-visual { min-height: 330px; }.ring-one { width: 340px; height: 340px; left: calc(50% - 170px); }.ring-two { width: 250px; height: 250px; top: 45px; left: calc(50% - 125px); }.projector-art { width: 190px; height: 74px; top: 55px; right: 4px; }.projector-lens { width: 48px; height: 48px; top: 10px; left: 22px; border-width: 7px; }.projector-line { width: 65px; top: 27px; right: 20px; }.camera-art { width: 220px; height: 146px; right: 50px; bottom: 40px; }.camera-lens { width: 100px; height: 100px; top: 23px; left: 57px; }.camera-lens span { width: 42px; height: 42px; }.hero-note { right: -5px; bottom: 18px; width: 190px; }.availability-pill { top: 22px; }
   .trust-bar { grid-template-columns: repeat(2, 1fr); }.trust-bar div, .trust-bar div:not(:first-child) { min-height: 78px; padding-left: 20px; border-bottom: 1px solid rgba(255,255,255,.08); }
   .equipment-section, .rentals-section { padding-top: 72px; padding-bottom: 78px; }.section-heading { display: block; }.result-summary { margin-top: 12px !important; }.search-panel { flex-direction: column; }.availability-toggle { min-height: 48px; justify-content: flex-start; padding-left: 15px; }
