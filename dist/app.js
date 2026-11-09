@@ -640,8 +640,11 @@ async function openQrDialog() {
     permissionStream.getTracks().forEach((track) => track.stop());
     const Scanner = await loadQrScannerLibrary();
     elements.qrReader.innerHTML = "";
-    qrScanner = new Scanner("qrReader");
-    await qrScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 230, height: 230 } }, (decodedText) => {
+    qrScanner = new Scanner("qrReader", { verbose: false });
+    const cameras = await Scanner.getCameras();
+    if (!cameras?.length) throw new DOMException("No camera found", "NotFoundError");
+    const preferredCamera = cameras.find((camera) => /back|rear|environment|후면|뒤/i.test(camera.label || "")) || cameras[0];
+    await qrScanner.start(preferredCamera.id, { fps: 10, qrbox: { width: 230, height: 230 } }, (decodedText) => {
       renderQrResult(findEquipmentByCode(decodedText));
       qrScanner.stop().catch(() => {});
     }, () => {});

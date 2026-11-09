@@ -252,6 +252,18 @@ dialog::backdrop { background: rgba(5,20,36,.7); backdrop-filter: blur(3px); }
   .dialog-header { padding: 20px; }.basket-body { padding: 18px 20px 22px; }.basket-item { grid-template-columns: 48px 1fr auto; }.basket-item-visual { width: 48px; height: 48px; }
 }
 
+/* Opening hero logo and QR icon: keep them above the visual copy and clip at the right edge. */
+.hero-visual { overflow: hidden; }
+.hero-visual > .ewha-watermark { display: grid !important; position: absolute; z-index: 0; top: 50%; right: -180px; left: auto; width: 560px; height: 560px; border: 0; transform: translateY(-50%) rotate(-8deg); }
+.hero-visual > .ewha-watermark::before { display: none; }
+.hero-visual > .ewha-watermark img { width: 560px; height: 560px; opacity: .22; filter: none; object-fit: contain; }
+.hero-visual-copy { z-index: 1; }
+.qr-icon { width: 24px; height: 24px; fill: currentColor; flex: 0 0 auto; }
+@media (max-width: 620px) {
+  .hero-visual > .ewha-watermark { right: -130px; width: 390px; height: 390px; }
+  .hero-visual > .ewha-watermark img { width: 390px; height: 390px; opacity: .18; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
 }
