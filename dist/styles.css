@@ -326,9 +326,9 @@ dialog::backdrop { background: rgba(5,20,36,.7); backdrop-filter: blur(3px); }
 
 /* Final seal sizing: vertical edges stay inside; only the right side is cropped. */
 .hero { overflow: hidden; }
-.hero-visual > .ewha-watermark { display: grid !important; position: absolute !important; z-index: 1 !important; top: 24px !important; right: -220px !important; bottom: 24px !important; left: auto !important; width: 760px !important; height: auto !important; border: 0 !important; transform: none !important; }
+.hero-visual > .ewha-watermark { display: grid !important; position: absolute !important; z-index: 0 !important; top: 0 !important; right: -180px !important; bottom: 0 !important; left: auto !important; width: 820px !important; height: 100% !important; border: 0 !important; transform: none !important; }
 .hero-visual > .ewha-watermark::before { display: none !important; }
-.hero-visual > .ewha-watermark img { width: 100% !important; height: 100% !important; opacity: .32 !important; filter: none !important; object-fit: contain !important; }
+.hero-visual > .ewha-watermark img { width: 100% !important; height: 100% !important; opacity: .52 !important; filter: brightness(1.55) saturate(1.1) !important; object-fit: contain !important; }
 @media (max-width: 620px) {
   .hero-visual > .ewha-watermark { top: 20px !important; right: -90px !important; bottom: 20px !important; width: 430px !important; height: auto !important; }
   .hero-visual > .ewha-watermark img { opacity: .32 !important; }
@@ -402,6 +402,6 @@ dialog::backdrop { background: rgba(5,20,36,.7); backdrop-filter: blur(3px); }
 .hero-visual-copy { z-index: 1 !important; }
 @media (max-width: 620px) {
   .hero-visual { min-height: 350px; margin-top: -8px; }
-  .hero-visual > .ewha-watermark { top: 20px !important; right: -90px !important; bottom: 20px !important; width: 430px !important; height: auto !important; }
-  .hero-visual > .ewha-watermark img { width: 100% !important; height: 100% !important; opacity: .32 !important; }
+  .hero-visual > .ewha-watermark { top: 0 !important; right: -60px !important; bottom: 0 !important; width: 460px !important; height: 100% !important; }
+  .hero-visual > .ewha-watermark img { width: 100% !important; height: 100% !important; opacity: .50 !important; }
 }
