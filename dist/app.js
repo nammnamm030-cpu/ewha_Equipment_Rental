@@ -669,6 +669,7 @@ function loadQrGeneratorLibrary() {
 async function openEquipmentQrPrint(equipmentId) {
   const item = findEquipmentByCode(equipmentId);
   if (!item) return;
+  closeDialog(elements.operatorDialog);
   elements.qrResult.innerHTML = `<div class="qr-print-card"><div id="qrCanvas"></div><strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(item.id)}</span><button class="secondary-button" id="qrScanFromPrint" type="button">스캔 화면으로</button></div>`;
   openDialog(elements.qrDialog);
   try {
