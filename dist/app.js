@@ -704,7 +704,7 @@ function renderOperatorDashboard(profile) {
   elements.operatorBody.innerHTML = `<div class="operator-summary"><div><span>등록 장비</span><strong>${equipment.length}대</strong></div><div><span>대여 신청</span><strong>${applications.length}건</strong></div><div><span>운영자</span><strong>${escapeHtml(profile.email)}</strong></div></div>
     <section class="operator-panel"><div class="operator-panel-heading"><div><p class="section-kicker">APPROVALS</p><h3>대여 신청 승인</h3><p>학생이 신청한 대여를 확인한 뒤 승인 또는 거절할 수 있습니다.</p></div></div><div class="approval-list">${approvalCards}</div></section>
     ${returnPanel}
-    <section class="operator-panel"><div class="operator-panel-heading"><div><p class="section-kicker">EQUIPMENT STATUS</p><h3>장비 대여 상태 관리</h3><p>카테고리를 선택해 장비별 상태를 대출 가능, 대출 중, 대출 불가로 변경할 수 있습니다.</p></div></div><label class="inventory-category-filter" for="operatorInventoryCategory">장비 카테고리<select id="operatorInventoryCategory">${inventoryCategories.map((category) => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`).join("")}</select></label><div class="inventory-status-list">${inventoryRows}</div></section>
+    <section class="operator-panel"><div class="operator-panel-heading"><div><p class="section-kicker">EQUIPMENT STATUS</p><h3>장비 대여 상태 관리</h3><p>카테고리를 선택하거나 장비명·식별번호를 검색해 상태를 변경할 수 있습니다.</p></div></div><div class="inventory-toolbar"><label class="inventory-category-filter" for="operatorInventoryCategory">장비 카테고리<select id="operatorInventoryCategory">${inventoryCategories.map((category) => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`).join("")}</select></label><label class="inventory-search" for="operatorInventorySearch"><span class="sr-only">장비 상태 검색</span><input id="operatorInventorySearch" type="search" placeholder="장비명 또는 식별번호 검색" /></label></div><div class="inventory-status-list">${inventoryRows}</div></section>
     <section class="operator-panel"><div class="operator-panel-heading"><div><p class="section-kicker">ADD EQUIPMENT</p><h3>새 장비 등록</h3><p>식별코드가 <strong>카테고리약어-등록연도-장비번호</strong> 형식으로 자동 부여됩니다. 예: CAM-2026-001</p></div></div>
       <form id="operatorEquipmentForm" class="operator-form" novalidate>
         <div class="field"><label for="operatorCategory">장비 종류</label><select id="operatorCategory" name="category" required>${categoryOptions}</select></div>
@@ -753,10 +753,13 @@ function renderOperatorDashboard(profile) {
     renderEquipment();
     showToast(`${item.name} 상태를 ${status}(으)로 변경했습니다.`);
   }));
-  elements.operatorBody.querySelector("#operatorInventoryCategory")?.addEventListener("change", (event) => {
-    const category = event.currentTarget.value;
-    elements.operatorBody.querySelectorAll("[data-inventory-category]").forEach((row) => { row.hidden = category !== "전체" && row.dataset.inventoryCategory !== category; });
-  });
+  const filterInventory = () => {
+    const category = elements.operatorBody.querySelector("#operatorInventoryCategory")?.value || "전체";
+    const query = (elements.operatorBody.querySelector("#operatorInventorySearch")?.value || "").trim().toLocaleLowerCase("ko-KR");
+    elements.operatorBody.querySelectorAll("[data-inventory-category]").forEach((row) => { const matchesCategory = category === "전체" || row.dataset.inventoryCategory === category; const matchesQuery = !query || row.textContent.toLocaleLowerCase("ko-KR").includes(query); row.hidden = !(matchesCategory && matchesQuery); });
+  };
+  elements.operatorBody.querySelector("#operatorInventoryCategory")?.addEventListener("change", filterInventory);
+  elements.operatorBody.querySelector("#operatorInventorySearch")?.addEventListener("input", filterInventory);
   const updateApproval = async (applicationId, nextStatus) => {
     const application = state.applications.find((entry) => entry.id === applicationId);
     if (!application) return;
