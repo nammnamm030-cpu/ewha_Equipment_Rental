@@ -1015,16 +1015,6 @@ elements.returnDialog.addEventListener("click", (event) => { if (event.target.cl
 elements.authDialog.addEventListener("click", (event) => { if (event.target.closest(".close-auth")) closeDialog(elements.authDialog); });
 elements.operatorDialog.addEventListener("click", (event) => { if (event.target.closest(".close-operator")) closeDialog(elements.operatorDialog); });
 document.querySelector("#authForm").addEventListener("submit", submitStudentCheck);
-document.querySelector("#languageToggle").addEventListener("click", () => {
-  state.language = state.language === "ko" ? "en" : "ko";
-  localStorage.setItem(languageKey, state.language);
-  applyLanguage();
-});
-document.querySelector("#themeToggle").addEventListener("click", () => {
-  state.theme = state.theme === "light" ? "dark" : "light";
-  localStorage.setItem(themeKey, state.theme);
-  applyTheme();
-});
 document.querySelector("#qrButton").addEventListener("click", openQrDialog);
 document.querySelector("#mobileRentButton").addEventListener("click", () => openStudentCheck("equipment"));
 document.querySelector("#mobileReturnButton").addEventListener("click", () => openStudentCheck("return"));
