@@ -659,19 +659,47 @@ async function openQrDialog() {
 }
 
 function openOperatorDashboard(profile) {
+  state.applications = readStorage(storageKeys.applications, state.applications);
   renderOperatorDashboard(profile);
   openDialog(elements.operatorDialog);
+  refreshOperatorApplications(profile);
+}
+
+async function refreshOperatorApplications(profile) {
+  const adapter = window.BorrowbomSupabase;
+  if (!adapter || !adapter.isReady()) return;
+  const result = await adapter.listMyRentalRequests();
+  if (result.error || !Array.isArray(result.data)) return;
+  const remoteApplications = result.data.flatMap((request) => (request.rental_request_items || []).map((item) => {
+    const linkedItem = equipment.find((entry) => entry.id === item.equipment_id);
+    const remoteStatus = { "신청": "applied", "승인": "approved", "거절": "rejected", "반납 완료": "returned" }[request.status] || request.status || "applied";
+    return { id: `REMOTE-${request.id}-${item.equipment_id}`, remoteRequestId: request.id, equipmentId: item.equipment_id, assetNo: item.asset_no_snapshot, name: item.equipment_name_snapshot, category: linkedItem?.category || "", symbol: linkedItem ? symbolForCategory(linkedItem.category) : "", color: linkedItem?.color || "#e8f1ec", requesterName: request.requester_name, requesterPhone: request.requester_phone, requesterEmail: request.requester_email, studentNumber: request.student_number, purpose: request.purpose, startDate: request.start_date, endDate: request.end_date, location: linkedItem?.location || "413호", status: remoteStatus, requestType: request.request_type || "대여", createdAt: request.created_at };
+  }));
+  const remoteKeys = new Set();
+  remoteApplications.forEach((remote) => {
+    const key = `${remote.remoteRequestId}:${remote.equipmentId}`;
+    remoteKeys.add(key);
+    const local = state.applications.find((entry) => entry.remoteRequestId === remote.remoteRequestId && entry.equipmentId === remote.equipmentId);
+    if (local) Object.assign(local, remote);
+  });
+  state.applications = [...remoteApplications, ...state.applications.filter((entry) => !entry.remoteRequestId || !remoteKeys.has(`${entry.remoteRequestId}:${entry.equipmentId}`))];
+  writeStorage(storageKeys.applications, state.applications);
+  if (document.body.contains(elements.operatorDialog)) renderOperatorDashboard(profile);
 }
 
 function renderOperatorDashboard(profile) {
   const applications = state.applications;
   const categoryOptions = ["카메라", "빔프로젝터", "TV 모니터", "디빅스", "브라켓", "HDMI 선"].map((category) => `<option value="${category}">${category}</option>`).join("");
   const statusLabels = { applied: "승인 대기", 신청: "승인 대기", approved: "승인", rejected: "거절", returned: "반납 완료" };
+  const today = toLocalIso(new Date());
+  const isOverdue = (application) => (application.requestType || "대여") === "대여" && application.endDate && application.endDate < today && !["returned", "rejected", "반납 완료", "거절"].includes(application.status);
   const pendingApplications = applications.filter((application) => (application.requestType || "대여") === "대여" && !["approved", "rejected", "returned", "반납 완료", "거절"].includes(application.status));
   const approvalCards = pendingApplications.length ? pendingApplications.map((application) => `<article class="approval-card"><div><strong>${escapeHtml(application.name || "-")}</strong><span>${escapeHtml(application.requesterName || "-")} · ${escapeHtml(application.studentNumber || "-")}</span><small>${escapeHtml(application.requesterEmail || "-")} · ${escapeHtml(application.startDate || "-")} ~ ${escapeHtml(application.endDate || "-")}</small></div><div class="approval-actions"><button class="primary-button" type="button" data-approve-id="${escapeHtml(application.id)}">승인</button><button class="secondary-button" type="button" data-reject-id="${escapeHtml(application.id)}">거절</button></div></article>`).join("") : `<p class="approval-empty">현재 승인 대기 중인 대여 신청이 없습니다.</p>`;
-  const borrowerRows = applications.length ? applications.map((application) => `<tr><td>${escapeHtml(application.requesterName || "-")}</td><td>${escapeHtml(application.requesterEmail || "-")}</td><td>${escapeHtml(application.studentNumber || "-")}</td><td>${escapeHtml(application.name || "-")}</td><td>${escapeHtml(application.startDate || "-")} ~ ${escapeHtml(application.endDate || "-")}</td><td>${escapeHtml(statusLabels[application.status] || application.status || "신청")}</td></tr>`).join("") : `<tr><td colspan="6">현재 대여 신청이 없습니다.</td></tr>`;
+  const borrowerRows = applications.length ? applications.map((application) => `<tr class="${isOverdue(application) ? "overdue" : ""}"><td>${escapeHtml(application.requesterName || "-")}</td><td>${escapeHtml(application.requesterEmail || "-")}</td><td>${escapeHtml(application.studentNumber || "-")}</td><td>${escapeHtml(application.name || "-")}</td><td>${escapeHtml(application.startDate || "-")} ~ ${escapeHtml(application.endDate || "-")}</td><td>${isOverdue(application) ? "연체" : escapeHtml(statusLabels[application.status] || application.status || "신청")}</td></tr>`).join("") : `<tr><td colspan="6">현재 대여 신청이 없습니다.</td></tr>`;
+  const returnPanel = `<section class="operator-panel"><div class="operator-panel-heading"><div><p class="section-kicker">RETURN CHECK-IN</p><h3>운영자 반납 처리</h3><p>대여자 이름을 검색한 뒤 장비 QR을 스캔해 반납 완료 처리합니다.</p></div></div><form id="operatorReturnForm" class="operator-return-form"><div class="field"><label for="operatorReturnName">대여자 이름</label><input id="operatorReturnName" placeholder="대여자 이름을 입력하세요" required /></div><button class="primary-button" type="submit">이름 확인 후 QR 스캔</button></form><p class="form-error" id="operatorReturnError" role="alert"></p></section>`;
   elements.operatorBody.innerHTML = `<div class="operator-summary"><div><span>등록 장비</span><strong>${equipment.length}대</strong></div><div><span>대여 신청</span><strong>${applications.length}건</strong></div><div><span>운영자</span><strong>${escapeHtml(profile.email)}</strong></div></div>
     <section class="operator-panel"><div class="operator-panel-heading"><div><p class="section-kicker">APPROVALS</p><h3>대여 신청 승인</h3><p>학생이 신청한 대여를 확인한 뒤 승인 또는 거절할 수 있습니다.</p></div></div><div class="approval-list">${approvalCards}</div></section>
+    ${returnPanel}
     <section class="operator-panel"><div class="operator-panel-heading"><div><p class="section-kicker">ADD EQUIPMENT</p><h3>새 장비 등록</h3><p>식별코드가 <strong>카테고리약어-등록연도-장비번호</strong> 형식으로 자동 부여됩니다. 예: CAM-2026-001</p></div></div>
       <form id="operatorEquipmentForm" class="operator-form" novalidate>
         <div class="field"><label for="operatorCategory">장비 종류</label><select id="operatorCategory" name="category" required>${categoryOptions}</select></div>
@@ -687,7 +715,6 @@ function renderOperatorDashboard(profile) {
       </form>
     </section>
     <section class="operator-panel"><div class="operator-panel-heading"><div><p class="section-kicker">EQUIPMENT QR</p><h3>장비 QR 만들기</h3><p>QR을 출력해 장비에 붙이면 스캔으로 대여·반납을 시작할 수 있습니다.</p></div></div><div class="operator-qr-grid">${equipment.map((item) => `<button class="operator-qr-item" type="button" data-qr-equipment="${escapeHtml(item.id)}"><span>${escapeHtml(item.name)}</span><small>${escapeHtml(item.id)}</small></button>`).join("")}</div></section>
-    <section class="operator-panel"><div class="operator-panel-heading"><div><p class="section-kicker">RETURN CHECK-IN</p><h3>운영자 반납 처리</h3><p>대여자 이름을 검색한 뒤 장비 QR을 스캔해 반납 완료 처리합니다.</p></div></div><form id="operatorReturnForm" class="operator-return-form"><div class="field"><label for="operatorReturnName">대여자 이름</label><input id="operatorReturnName" placeholder="대여자 이름을 입력하세요" required /></div><button class="primary-button" type="submit">이름 확인 후 QR 스캔</button></form><p class="form-error" id="operatorReturnError" role="alert"></p></section>
     <section class="operator-panel"><div class="operator-panel-heading"><div><p class="section-kicker">BORROWERS</p><h3>대여자 목록</h3><p>운영자 계정에서만 전체 신청자를 확인할 수 있습니다.</p></div></div><div class="operator-table-wrap"><table class="operator-table"><thead><tr><th>이름</th><th>이메일</th><th>학번</th><th>장비</th><th>기간</th><th>상태</th></tr></thead><tbody>${borrowerRows}</tbody></table></div></section>`;
   elements.operatorBody.querySelector("#operatorEquipmentForm").addEventListener("submit", (event) => {
     event.preventDefault();

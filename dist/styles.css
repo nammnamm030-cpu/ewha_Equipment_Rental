@@ -366,6 +366,7 @@ dialog::backdrop { background: rgba(5,20,36,.7); backdrop-filter: blur(3px); }
 }
 .operator-return-form { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 12px; margin-top: 16px; }.operator-return-form .primary-button { min-height: 46px; font-size: 13px; }
 .approval-list { display: grid; gap: 10px; margin-top: 16px; }.approval-card { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 15px; border: 1px solid var(--line); border-radius: 12px; background: var(--canvas); }.approval-card strong, .approval-card span, .approval-card small { display: block; }.approval-card strong { color: var(--navy-900); font-size: 14px; }.approval-card span { margin-top: 3px; font-size: 12px; font-weight: 750; }.approval-card small { margin-top: 4px; color: var(--muted); font-size: 11px; }.approval-actions { display: flex; flex: 0 0 auto; gap: 8px; }.approval-actions button { min-height: 40px; padding: 0 14px; font-size: 12px; }.approval-empty { margin: 16px 0 0; color: var(--muted); font-size: 13px; }
+.operator-table tr.overdue td { color: #a92d2d; background: #fff1f1; font-weight: 800; }.operator-table tr.overdue td:last-child { color: #c51f1f; }
 @media (max-width: 620px) {
   .approval-card { align-items: stretch; flex-direction: column; gap: 12px; }.approval-actions button { flex: 1; }
   .mobile-sticky-actions button { min-height: 66px; font-size: 18px; border-radius: 14px; }
