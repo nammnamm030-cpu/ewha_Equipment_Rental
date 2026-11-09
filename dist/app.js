@@ -586,7 +586,7 @@ function loadQrScannerLibrary() {
   if (window.Html5Qrcode) return Promise.resolve(window.Html5Qrcode);
   return new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js";
+    script.src = "https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js";
     script.onload = () => resolve(window.Html5Qrcode);
     script.onerror = reject;
     document.head.appendChild(script);
@@ -636,19 +636,22 @@ async function openQrDialog() {
   elements.qrReader.innerHTML = `<p class="qr-camera-fallback">카메라 권한을 확인하는 중…</p>`;
   try {
     if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) throw new Error("SECURE_CAMERA_UNAVAILABLE");
-    const permissionStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: false });
+    const permissionStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
     permissionStream.getTracks().forEach((track) => track.stop());
     const Scanner = await loadQrScannerLibrary();
     elements.qrReader.innerHTML = "";
     qrScanner = new Scanner("qrReader");
-    await qrScanner.start({ facingMode: { ideal: "environment" } }, { fps: 10, qrbox: { width: 230, height: 230 } }, (decodedText) => {
+    await qrScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 230, height: 230 } }, (decodedText) => {
       renderQrResult(findEquipmentByCode(decodedText));
       qrScanner.stop().catch(() => {});
     }, () => {});
   } catch (error) {
-    const message = error && error.name === "NotAllowedError"
+    const errorName = error?.name || "UnknownError";
+    const message = errorName === "NotAllowedError"
       ? "카메라 권한이 거부되었습니다. 브라우저 주소창의 카메라 권한을 허용한 뒤 다시 시도해주세요."
-      : "이 환경에서는 카메라를 사용할 수 없습니다. HTTPS 접속과 카메라 권한을 확인하거나 아래에 식별코드를 직접 입력해주세요.";
+      : errorName === "NotFoundError"
+        ? "사용 가능한 카메라를 찾지 못했습니다. 휴대폰 카메라가 연결되어 있는지 확인해주세요."
+        : `카메라를 시작하지 못했습니다(${errorName}). HTTPS 접속과 카메라 권한을 확인하거나 아래에 식별코드를 직접 입력해주세요.`;
     elements.qrReader.innerHTML = `<p class="qr-camera-fallback">${message}</p>`;
   }
 }
