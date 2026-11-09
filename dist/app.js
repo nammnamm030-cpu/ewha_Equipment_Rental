@@ -93,7 +93,7 @@ const translations = {
   en: { brand: "Ewha Womans University College of Art Equipment Rental", equipment: "Find equipment", guide: "Guide", rentals: "My rentals", basket: "Rental cart", return: "Return", rent: "Rent", heroDesc: "Find the equipment you need, check availability, and rent it.", search: "Search equipment or use", available: "Available only", reset: "Reset filters", detail: "View details", unavailable: "Unavailable", addCart: "Add to rental cart", cartEmpty: "Your rental cart is empty", studentCheck: "Student check", rentalStudentCheck: "Rental student check", returnStudentCheck: "Return student check", name: "Name", studentNumber: "Student number", email: "School email", phone: "Phone", purpose: "Purpose", pastRentals: "Past rentals", componentCheck: "Have you checked all components?", languageLabel: "English", themeLight: "Light mode", themeDark: "Dark mode" }
 };
 function t(key) { return (translations[state.language] || translations.ko)[key] || translations.ko[key] || key; }
-const statusLabels = { applied: "신청", approved: "승인", renting: "대여 중", returned: "반납 완료" };
+const statusLabels = { applied: "신청", approved: "승인", renting: "대여 중", returned: "반납 완료", cancelled: "신청 취소" };
 
 const demoRentals = [
   { id: "DEMO-1", equipmentId: "PRJ-01", name: "Epson 레이저 프로젝터", symbol: "PROJ", color:"#eef5f0", startDate: "2026-11-03", endDate: "2026-11-04", purpose: "전공 발표", location: "학생회관 1층 기자재실", status: "approved" },
@@ -810,11 +810,10 @@ async function openReturnWorkspace(profile) {
 }
 
 function renderReturn(history = [], profile = {}) {
-  const historyOptions = history.map((entry, index) => `<option value="${escapeHtml(entry.equipmentId)}" data-history-index="${index}">${escapeHtml(entry.name)} · ${escapeHtml(entry.assetNo || entry.equipmentId)} · ${escapeHtml(entry.startDate || "")}</option>`).join("");
-  const equipmentOptions = equipment.map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.name)} · ${escapeHtml(item.assetNo)}</option>`).join("");
-  const options = historyOptions || equipmentOptions;
-  elements.returnBody.innerHTML = `<div class="return-student-context"><strong>${escapeHtml(profile.name || "학생")}님의 반납 신청</strong><span>${history.length ? "과거 대여 내역에서 반납할 장비를 선택해주세요." : "일치하는 과거 대여 내역이 없어 전체 장비에서 선택할 수 있어요."}</span></div>${history.length ? `<div class="return-history-note">과거 대여 ${history.length}건을 찾았어요.</div>` : `<div class="return-history-empty">과거 대여 내역이 없습니다. 반납할 장비를 아래 전체 목록에서 선택해주세요.</div>`}<form id="returnForm" novalidate>
-    <div class="return-equipment"><label for="returnEquipment">반납할 장비 <span aria-hidden="true">*</span></label><select id="returnEquipment" name="equipmentId" required>${options}</select></div>
+  const entries = history.length ? history : equipment.map((item) => ({ equipmentId: item.id, assetNo: item.assetNo, name: item.name }));
+  const equipmentOptions = entries.map((entry) => `<label class="return-item-option"><input type="checkbox" name="equipmentIds" value="${escapeHtml(entry.equipmentId)}" data-return-item /><span><strong>${escapeHtml(entry.name)}</strong><small>${escapeHtml(entry.assetNo || entry.equipmentId)}${entry.startDate ? ` · ${escapeHtml(entry.startDate)} ~ ${escapeHtml(entry.endDate || "")}` : ""}</small></span></label>`).join("");
+  elements.returnBody.innerHTML = `<div class="return-student-context"><strong>${escapeHtml(profile.name || "학생")}님의 반납 신청</strong><span>${history.length ? "반납할 장비를 여러 개 선택한 뒤 한 번에 신청할 수 있어요." : "반납할 장비를 아래 목록에서 여러 개 선택할 수 있어요."}</span></div>${history.length ? `<div class="return-history-note">과거 대여 ${history.length}건을 찾았어요.</div>` : ""}<form id="returnForm" novalidate>
+    <div class="return-equipment return-multi-list"><label class="return-list-label">반납할 장비 <span aria-hidden="true">*</span></label>${equipmentOptions}</div>
     <div id="returnComponents" class="component-checklist" aria-live="polite"></div>
     <div class="student-fields">
       <div class="field"><label for="returnerName">이름 <span aria-hidden="true">*</span></label><input id="returnerName" name="requesterName" type="text" autocomplete="name" value="${escapeHtml(profile.name || "")}" required /></div>
@@ -826,17 +825,12 @@ function renderReturn(history = [], profile = {}) {
     <button class="primary-button return-submit" type="submit">반납 신청하기</button>
   </form>`;
   const form = elements.returnBody.querySelector("#returnForm");
-  const select = form.elements.equipmentId;
-  if (scannedEquipmentId && [...select.options].some((option) => option.value === scannedEquipmentId)) select.value = scannedEquipmentId;
   const renderComponents = () => {
-    const item = equipment.find((entry) => entry.id === select.value) || equipment[0];
-    const components = item.components || [];
-    elements.returnBody.querySelector("#returnComponents").innerHTML = components.length
-      ? `<strong>${escapeHtml(item.name)} 구성품을 모두 확인했나요?</strong>${components.map((component, index) => `<label><input type="checkbox" name="component-${index}" value="${escapeHtml(component)}" /> <span>${escapeHtml(component)}</span></label>`).join("")}`
-      : `<strong>확인할 구성품이 없습니다.</strong><label><input type="checkbox" name="component-empty" /> 구성품 없음 확인</label>`;
+    const selected = [...form.querySelectorAll("[data-return-item]:checked")].map((checkbox) => equipment.find((entry) => entry.id === checkbox.value)).filter(Boolean);
+    elements.returnBody.querySelector("#returnComponents").innerHTML = selected.length ? selected.map((item) => (item.components || []).length ? `<div class="return-component-group"><strong>${escapeHtml(item.name)} 구성품</strong>${item.components.map((component, index) => `<label><input type="checkbox" name="component-${item.id}-${index}" value="${escapeHtml(component)}" /> <span>${escapeHtml(component)}</span></label>`).join("")}</div>` : `<div class="return-component-group"><strong>${escapeHtml(item.name)}</strong><label><input type="checkbox" name="component-${item.id}-empty" /> 구성품 없음 확인</label></div>`).join("") : `<p class="return-components-hint">장비를 선택하면 구성품 확인 항목이 나타납니다.</p>`;
   };
-  select.addEventListener("change", renderComponents);
-  renderComponents();
+  form.querySelectorAll("[data-return-item]").forEach((checkbox) => checkbox.addEventListener("change", renderComponents));
+  if (scannedEquipmentId) form.querySelector(`[data-return-item][value="${CSS.escape(scannedEquipmentId)}"]`)?.click();
   form.addEventListener("submit", submitReturn);
 }
 
@@ -844,7 +838,8 @@ async function submitReturn(event) {
   event.preventDefault();
   const form = event.currentTarget;
   const error = form.querySelector("#returnError");
-  const item = equipment.find((entry) => entry.id === form.elements.equipmentId.value);
+  const selectedIds = [...form.querySelectorAll("[data-return-item]:checked")].map((checkbox) => checkbox.value);
+  const selectedItems = selectedIds.map((id) => equipment.find((entry) => entry.id === id)).filter(Boolean);
   const validation = getStudentValidation();
   const name = validation.validateName(form.elements.requesterName.value);
   const phone = validation.validatePhone(form.elements.requesterPhone.value);
@@ -853,8 +848,8 @@ async function submitReturn(event) {
   const checks = [...form.querySelectorAll(".component-checklist input[type=checkbox]")];
   const componentsChecked = checks.length > 0 && checks.every((checkbox) => checkbox.checked);
   const firstError = [name, phone, email, studentNumber].find((result) => !result.valid);
-  if (!item || !componentsChecked || firstError) {
-    error.textContent = firstError ? firstError.message : (componentsChecked ? "반납할 장비를 선택해주세요." : "모든 구성품을 확인한 뒤 반납 신청해주세요.");
+  if (!selectedItems.length || !componentsChecked || firstError) {
+    error.textContent = firstError ? firstError.message : (!selectedItems.length ? "반납할 장비를 하나 이상 선택해주세요." : "모든 구성품을 확인한 뒤 반납 신청해주세요.");
     return;
   }
   const submitButton = form.querySelector(".return-submit");
@@ -862,19 +857,20 @@ async function submitReturn(event) {
   const adapter = window.BorrowbomSupabase;
   if (adapter && adapter.isReady()) {
     const remoteResult = await adapter.createRentalRequest({
-      requestType: "반납", purpose: `${item.name} 반납 신청`, requesterName: name.value, requesterPhone: phone.value,
+      requestType: "반납", purpose: `${selectedItems.map((item) => item.name).join(", ")} 반납 신청`, requesterName: name.value, requesterPhone: phone.value,
       requesterEmail: email.value, studentNumber: studentNumber.value, startDate: new Date().toISOString().slice(0, 10),
       endDate: new Date().toISOString().slice(0, 10), returnComponentsConfirmed: true,
-      items: [{ equipmentId: item.id, assetNo: item.assetNo, name: item.name }]
+      items: selectedItems.map((item) => ({ equipmentId: item.id, assetNo: item.assetNo, name: item.name }))
     });
     if (remoteResult.error) { submitButton.disabled = false; error.textContent = "반납 신청을 저장하지 못했어요. 잠시 후 다시 시도해주세요."; return; }
   }
-  const application = { id: `RETURN-${Date.now()}`, equipmentId: item.id, category: item.category, name: item.name, symbol: symbolForCategory(item.category), color: item.color, assetNo: item.assetNo, requesterName: name.value, requesterPhone: phone.value, requesterEmail: email.value, studentNumber: studentNumber.value, purpose: "반납 신청", startDate: new Date().toISOString().slice(0, 10), endDate: new Date().toISOString().slice(0, 10), location: item.location, status: "applied", requestType: "반납", returnComponentsConfirmed: true, createdAt: new Date().toISOString() };
-  state.applications = [application, ...state.applications];
+  const timestamp = Date.now();
+  const applications = selectedItems.map((item, index) => ({ id: `RETURN-${timestamp}-${index}`, equipmentId: item.id, category: item.category, name: item.name, symbol: symbolForCategory(item.category), color: item.color, assetNo: item.assetNo, requesterName: name.value, requesterPhone: phone.value, requesterEmail: email.value, studentNumber: studentNumber.value, purpose: "반납 신청", startDate: new Date().toISOString().slice(0, 10), endDate: new Date().toISOString().slice(0, 10), location: item.location, status: "applied", requestType: "반납", returnComponentsConfirmed: true, createdAt: new Date().toISOString() }));
+  state.applications = [...applications, ...state.applications];
   writeStorage(storageKeys.applications, state.applications);
   renderRentals();
   closeDialog(elements.returnDialog);
-  showToast(`${item.name} 반납 신청이 접수되었어요.`);
+  showToast(`${selectedItems.length}개 장비의 반납 신청이 접수되었어요.`);
 }
 
 function getStudentValidation() {
@@ -1033,9 +1029,20 @@ function renderRentals() {
       <div class="rental-name"><strong>${escapeHtml(rental.name)}</strong><span>${escapeHtml(rental.equipmentId)} · ${escapeHtml(rental.purpose)}</span></div>
       <div class="rental-detail"><small>대여 기간</small><strong>${formatDate(rental.startDate)} – ${formatDate(rental.endDate)}</strong></div>
       <div class="rental-detail"><small>수령 장소</small><strong>${escapeHtml(rental.location)}</strong></div>
-      <span class="status-chip ${rental.status}">${statusLabels[rental.status]}</span>
+      <span class="status-chip ${rental.status}">${statusLabels[rental.status] || rental.status}</span>
+      ${["applied", "신청"].includes(rental.status) ? `<button class="rental-cancel-button" type="button" data-cancel-rental="${escapeHtml(rental.id)}">신청 취소하기</button>` : ""}
     </article>`;
   }).join("");
+  elements.rentalList.querySelectorAll("[data-cancel-rental]").forEach((button) => button.addEventListener("click", async () => {
+    const rental = state.applications.find((entry) => entry.id === button.dataset.cancelRental);
+    if (!rental || !["applied", "신청"].includes(rental.status)) return;
+    const adapter = window.BorrowbomSupabase;
+    if (adapter && adapter.isReady() && rental.remoteRequestId) await adapter.updateRentalRequestStatus(rental.remoteRequestId, "취소");
+    rental.status = "cancelled";
+    writeStorage(storageKeys.applications, state.applications);
+    renderRentals();
+    showToast("대여 신청을 취소했습니다.");
+  }));
 }
 
 function updateBasketCount() {
