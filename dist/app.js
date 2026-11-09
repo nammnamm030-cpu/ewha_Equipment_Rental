@@ -296,6 +296,7 @@ function normalizeRemoteEquipment(row) {
     total: 1,
     description: row.description || `${name} · 관리번호 ${row.asset_no}`,
     location: row.storage_location,
+    status: row.status,
     deposit: "없음",
     maxDays: visual.maxDays,
     color: visual.color,
@@ -695,11 +696,13 @@ function renderOperatorDashboard(profile) {
   const isOverdue = (application) => (application.requestType || "대여") === "대여" && application.endDate && application.endDate < today && !["returned", "rejected", "반납 완료", "거절"].includes(application.status);
   const pendingApplications = applications.filter((application) => (application.requestType || "대여") === "대여" && !["approved", "rejected", "returned", "반납 완료", "거절"].includes(application.status));
   const approvalCards = pendingApplications.length ? pendingApplications.map((application) => `<article class="approval-card"><div><strong>${escapeHtml(application.name || "-")}</strong><span>${escapeHtml(application.requesterName || "-")} · ${escapeHtml(application.studentNumber || "-")}</span><small>${escapeHtml(application.requesterEmail || "-")} · ${escapeHtml(application.startDate || "-")} ~ ${escapeHtml(application.endDate || "-")}</small></div><div class="approval-actions"><button class="primary-button" type="button" data-approve-id="${escapeHtml(application.id)}">승인</button><button class="secondary-button" type="button" data-reject-id="${escapeHtml(application.id)}">거절</button></div></article>`).join("") : `<p class="approval-empty">현재 승인 대기 중인 대여 신청이 없습니다.</p>`;
+  const inventoryRows = equipment.map((item) => `<label class="inventory-status-row"><span><strong>${escapeHtml(item.name)}</strong><small>${escapeHtml(item.assetNo || item.id)}</small></span><select data-equipment-status="${escapeHtml(item.id)}"><option value="대출 가능" ${(item.status || (item.stock > 0 ? "대출 가능" : "대출 중")) === "대출 가능" ? "selected" : ""}>대출 가능</option><option value="대출 중" ${(item.status || "") === "대출 중" ? "selected" : ""}>대출 중</option><option value="대출 불가" ${(item.status || "") === "대출 불가" ? "selected" : ""}>대출 불가</option></select></label>`).join("");
   const borrowerRows = applications.length ? applications.map((application) => `<tr class="${isOverdue(application) ? "overdue" : ""}"><td>${escapeHtml(application.requesterName || "-")}</td><td>${escapeHtml(application.requesterEmail || "-")}</td><td>${escapeHtml(application.studentNumber || "-")}</td><td>${escapeHtml(application.name || "-")}</td><td>${escapeHtml(application.startDate || "-")} ~ ${escapeHtml(application.endDate || "-")}</td><td>${isOverdue(application) ? "연체" : escapeHtml(statusLabels[application.status] || application.status || "신청")}</td></tr>`).join("") : `<tr><td colspan="6">현재 대여 신청이 없습니다.</td></tr>`;
-  const returnPanel = `<section class="operator-panel"><div class="operator-panel-heading"><div><p class="section-kicker">RETURN CHECK-IN</p><h3>운영자 반납 처리</h3><p>대여자 이름을 검색한 뒤 장비 QR을 스캔해 반납 완료 처리합니다.</p></div></div><form id="operatorReturnForm" class="operator-return-form"><div class="field"><label for="operatorReturnName">대여자 이름</label><input id="operatorReturnName" placeholder="대여자 이름을 입력하세요" required /></div><button class="primary-button" type="submit">이름 확인 후 QR 스캔</button></form><p class="form-error" id="operatorReturnError" role="alert"></p></section>`;
+  const returnPanel = `<section class="operator-panel"><div class="operator-panel-heading"><div><p class="section-kicker">RETURN CHECK-IN</p><h3>운영자 반납 처리</h3><p>대여자 이름을 검색한 뒤 반납할 장비를 여러 개 선택해 한 번에 처리합니다.</p></div></div><form id="operatorReturnForm" class="operator-return-form"><div class="field"><label for="operatorReturnName">대여자 이름</label><input id="operatorReturnName" placeholder="대여자 이름을 입력하세요" required /></div><button class="primary-button" type="submit">대여 목록 검색</button></form><p class="form-error" id="operatorReturnError" role="alert"></p><div id="operatorReturnCandidates" class="operator-return-candidates"></div></section>`;
   elements.operatorBody.innerHTML = `<div class="operator-summary"><div><span>등록 장비</span><strong>${equipment.length}대</strong></div><div><span>대여 신청</span><strong>${applications.length}건</strong></div><div><span>운영자</span><strong>${escapeHtml(profile.email)}</strong></div></div>
     <section class="operator-panel"><div class="operator-panel-heading"><div><p class="section-kicker">APPROVALS</p><h3>대여 신청 승인</h3><p>학생이 신청한 대여를 확인한 뒤 승인 또는 거절할 수 있습니다.</p></div></div><div class="approval-list">${approvalCards}</div></section>
     ${returnPanel}
+    <section class="operator-panel"><div class="operator-panel-heading"><div><p class="section-kicker">EQUIPMENT STATUS</p><h3>장비 대여 상태 관리</h3><p>장비별 상태를 대출 가능, 대출 중, 대출 불가로 변경할 수 있습니다.</p></div></div><div class="inventory-status-list">${inventoryRows}</div></section>
     <section class="operator-panel"><div class="operator-panel-heading"><div><p class="section-kicker">ADD EQUIPMENT</p><h3>새 장비 등록</h3><p>식별코드가 <strong>카테고리약어-등록연도-장비번호</strong> 형식으로 자동 부여됩니다. 예: CAM-2026-001</p></div></div>
       <form id="operatorEquipmentForm" class="operator-form" novalidate>
         <div class="field"><label for="operatorCategory">장비 종류</label><select id="operatorCategory" name="category" required>${categoryOptions}</select></div>
@@ -736,6 +739,18 @@ function renderOperatorDashboard(profile) {
     showToast(`${code} 장비가 등록되었습니다.`);
   });
   elements.operatorBody.querySelectorAll("[data-qr-equipment]").forEach((button) => button.addEventListener("click", () => openEquipmentQrPrint(button.dataset.qrEquipment)));
+  elements.operatorBody.querySelectorAll("[data-equipment-status]").forEach((select) => select.addEventListener("change", async (event) => {
+    const item = equipment.find((entry) => entry.id === event.currentTarget.dataset.equipmentStatus);
+    if (!item) return;
+    const status = event.currentTarget.value;
+    const adapter = window.BorrowbomSupabase;
+    if (adapter && adapter.isReady()) await adapter.updateEquipmentStatus(item.id, status);
+    item.status = status;
+    item.stock = status === "대출 가능" ? (item.total || 1) : 0;
+    writeStorage(storageKeys.operatorEquipment, equipment.filter((entry) => entry.id && String(entry.id).startsWith("ETC-")));
+    renderEquipment();
+    showToast(`${item.name} 상태를 ${status}(으)로 변경했습니다.`);
+  }));
   const updateApproval = async (applicationId, nextStatus) => {
     const application = state.applications.find((entry) => entry.id === applicationId);
     if (!application) return;
@@ -749,15 +764,32 @@ function renderOperatorDashboard(profile) {
   };
   elements.operatorBody.querySelectorAll("[data-approve-id]").forEach((button) => button.addEventListener("click", () => updateApproval(button.dataset.approveId, "approved")));
   elements.operatorBody.querySelectorAll("[data-reject-id]").forEach((button) => button.addEventListener("click", () => updateApproval(button.dataset.rejectId, "rejected")));
+  const renderOperatorReturnCandidates = (name) => {
+    const candidates = state.applications.filter((rental) => (rental.requestType || "대여") === "대여" && rental.requesterName === name && !["returned", "rejected", "cancelled", "반납 완료", "거절", "취소"].includes(rental.status));
+    const target = elements.operatorBody.querySelector("#operatorReturnCandidates");
+    target.innerHTML = candidates.length ? `<div class="operator-return-checklist">${candidates.map((rental) => `<label><input type="checkbox" value="${escapeHtml(rental.id)}" data-operator-return-item /><span><strong>${escapeHtml(rental.name)}</strong><small>${escapeHtml(rental.equipmentId)} · ${escapeHtml(rental.startDate)} ~ ${escapeHtml(rental.endDate)}</small></span></label>`).join("")}<button class="primary-button operator-return-bulk" type="button">선택 장비 반납 처리</button></div>` : `<p class="approval-empty">진행 중인 대여 목록이 없습니다.</p>`;
+    target.querySelector(".operator-return-bulk")?.addEventListener("click", async () => {
+      const selected = [...target.querySelectorAll("[data-operator-return-item]:checked")].map((checkbox) => state.applications.find((entry) => entry.id === checkbox.value)).filter(Boolean);
+      if (!selected.length) return;
+      const adapter = window.BorrowbomSupabase;
+      const requestIds = [...new Set(selected.map((entry) => entry.remoteRequestId).filter(Boolean))];
+      if (adapter && adapter.isReady()) {
+        await Promise.all(requestIds.map((requestId) => adapter.updateRentalRequestStatus(requestId, "반납 완료")));
+        await Promise.all(selected.map((entry) => adapter.updateEquipmentStatus(entry.equipmentId, "대출 가능")));
+      }
+      selected.forEach((entry) => { entry.status = "returned"; const item = equipment.find((equipmentItem) => equipmentItem.id === entry.equipmentId); if (item) { item.status = "대출 가능"; item.stock = item.total || 1; } });
+      writeStorage(storageKeys.applications, state.applications);
+      renderOperatorDashboard(profile);
+      showToast(`${selected.length}개 장비를 반납 처리했습니다.`);
+    });
+  };
   elements.operatorBody.querySelector("#operatorReturnForm").addEventListener("submit", (event) => {
     event.preventDefault();
     const name = event.currentTarget.elements.operatorReturnName.value.trim();
     const error = elements.operatorBody.querySelector("#operatorReturnError");
-    const hasRental = state.applications.some((rental) => (rental.requestType || "대여") === "대여" && rental.requesterName === name && !["returned", "rejected"].includes(rental.status));
+    const hasRental = state.applications.some((rental) => (rental.requestType || "대여") === "대여" && rental.requesterName === name && !["returned", "rejected", "cancelled", "반납 완료", "거절", "취소"].includes(rental.status));
     if (!name || !hasRental) { error.textContent = "진행 중인 해당 대여자를 찾을 수 없습니다."; return; }
-    operatorReturnName = name;
-    closeDialog(elements.operatorDialog);
-    openQrDialog();
+    renderOperatorReturnCandidates(name);
   });
 }
 

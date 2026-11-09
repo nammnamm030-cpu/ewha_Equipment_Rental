@@ -72,6 +72,10 @@
     async updateRentalRequestStatus(requestId, status) {
       if (!this.isReady()) return { data: null, error: this.error || "Supabase 설정 없음" };
       return this.client.from("rental_requests").update({ status: status }).eq("id", requestId).select("id,status").single();
+    },
+    async updateEquipmentStatus(equipmentId, status) {
+      if (!this.isReady()) return { data: null, error: this.error || "Supabase 설정 없음" };
+      return this.client.from("equipment").update({ status: status }).eq("id", equipmentId).select("id,status").single();
     }
   };
 
