@@ -250,14 +250,36 @@ function symbolForCategory(category) { return categorySymbols[category] || "ITEM
 
 function imageUrlForCategory(category) {
   const images = {
-    "카메라": "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=900&q=80",
-    "빔프로젝터": "https://images.unsplash.com/photo-1535016120720-40c646be5580?auto=format&fit=crop&w=900&q=80",
-    "TV 모니터": "https://images.unsplash.com/photo-1593784991095-a205069470b6?auto=format&fit=crop&w=900&q=80",
-    "디빅스": "https://images.unsplash.com/photo-1593784991095-a205069470b6?auto=format&fit=crop&w=900&q=80",
-    "브라켓": "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=900&q=80",
-    "HDMI 선": "https://images.unsplash.com/photo-1625842268584-8f3296236761?auto=format&fit=crop&w=900&q=80"
+    "카메라": "assets/equipment/camera.png",
+    "빔프로젝터": "assets/equipment/projector-samsung.png",
+    "TV 모니터": "assets/equipment/monitor-42.webp",
+    "디빅스": "assets/equipment/divx.png",
+    "브라켓": "assets/equipment/bracket-medium.jpg",
+    "HDMI 선": "assets/equipment/hdmi.webp"
   };
   return images[category] || images["카메라"];
+}
+
+function imageUrlForEquipment(item) {
+  if (item.imageUrl) return item.imageUrl;
+  const text = `${item.name || ""} ${item.description || ""}`.toLowerCase();
+  if (item.category === "카메라") return "assets/equipment/camera.png";
+  if (item.category === "HDMI 선") return "assets/equipment/hdmi.webp";
+  if (item.category === "디빅스") return "assets/equipment/divx.png";
+  if (item.category === "브라켓") return text.includes("소형") ? "assets/equipment/bracket-small.jpeg" : "assets/equipment/bracket-medium.jpg";
+  if (item.category === "TV 모니터") {
+    if (text.includes("32인치")) return "assets/equipment/monitor-32.png";
+    if (text.includes("55인치")) return "assets/equipment/monitor-55.png";
+    if (text.includes("72인치")) return "assets/equipment/monitor-72.png";
+    return "assets/equipment/monitor-42.webp";
+  }
+  if (item.category === "빔프로젝터") {
+    if (text.includes("panasonic") || text.includes("lc-xl200k")) return "assets/equipment/projector-panasonic.png";
+    if (text.includes("epson")) return "assets/equipment/projector-epson.png";
+    if (text.includes("dlp")) return "assets/equipment/projector-dlp.png";
+    return "assets/equipment/projector-samsung.png";
+  }
+  return imageUrlForCategory(item.category);
 }
 
 function normalizeRemoteEquipment(row) {
@@ -323,7 +345,7 @@ function renderEquipment() {
   elements.grid.innerHTML = filtered.map((item) => `
     <article class="equipment-card">
       <div class="card-visual" style="--visual-bg:${item.color}">
-        <img class="equipment-photo" src="${item.imageUrl || imageUrlForCategory(item.category)}" alt="${escapeHtml(item.name)} 실제 장비 사진" loading="lazy" />
+        <img class="equipment-photo" src="${imageUrlForEquipment(item)}" alt="${escapeHtml(item.name)} 실제 장비 사진" loading="lazy" />
         <span class="stock-badge ${item.stock === 0 ? "unavailable" : ""}">${item.stock > 0 ? `대여 가능 ${item.stock}개` : "현재 대여 중"}</span>
         <span class="equipment-symbol" aria-hidden="true">${symbolForCategory(item.category)}</span>
         <span class="category-label">${item.category}</span>
@@ -353,7 +375,7 @@ function openDetail(id) {
   const defaultEnd = toLocalIso(addDays(today, Math.min(1, item.maxDays - 1)));
   elements.detailContent.innerHTML = `
     <div class="detail-layout">
-      <div class="detail-visual" style="--visual-bg:${item.color}"><img class="detail-photo" src="${item.imageUrl || imageUrlForCategory(item.category)}" alt="${escapeHtml(item.name)} 실제 장비 사진" /><span class="detail-symbol" aria-hidden="true">${symbolForCategory(item.category)}</span></div>
+      <div class="detail-visual" style="--visual-bg:${item.color}"><img class="detail-photo" src="${imageUrlForEquipment(item)}" alt="${escapeHtml(item.name)} 실제 장비 사진" /><span class="detail-symbol" aria-hidden="true">${symbolForCategory(item.category)}</span></div>
       <div class="detail-pane">
         <div class="dialog-topline">
           <div><p class="section-kicker">${item.category} · ${item.id}</p><h2 id="detailTitle">${item.name}</h2></div>
