@@ -252,6 +252,15 @@ dialog::backdrop { background: rgba(5,20,36,.7); backdrop-filter: blur(3px); }
   .dialog-header { padding: 20px; }.basket-body { padding: 18px 20px 22px; }.basket-item { grid-template-columns: 48px 1fr auto; }.basket-item-visual { width: 48px; height: 48px; }
 }
 
+/* Keep the seal fully visible vertically; let only the right edge crop. */
+.hero { overflow: hidden; }
+.hero-visual > .ewha-watermark { top: 24px !important; right: -220px !important; bottom: 24px !important; width: 760px !important; height: auto !important; transform: none !important; }
+.hero-visual > .ewha-watermark img { width: 100% !important; height: 100% !important; opacity: .32 !important; object-fit: contain !important; }
+@media (max-width: 620px) {
+  .hero-visual > .ewha-watermark { top: 20px !important; right: -90px !important; bottom: 20px !important; width: 430px !important; height: auto !important; }
+  .hero-visual > .ewha-watermark img { opacity: .32 !important; }
+}
+
 /* Final hero watermark correction: upright, visible, and responsive. */
 .hero-visual > .ewha-watermark {
   display: grid !important;
@@ -283,6 +292,15 @@ dialog::backdrop { background: rgba(5,20,36,.7); backdrop-filter: blur(3px); }
   .hero-visual > .ewha-watermark img { width: 360px !important; height: 360px !important; opacity: .24 !important; }
 }
 
+/* Keep the seal fully visible vertically; let only the right edge crop. */
+.hero { overflow: hidden; }
+.hero-visual > .ewha-watermark { top: 24px !important; right: -220px !important; bottom: 24px !important; width: 760px !important; height: auto !important; transform: none !important; }
+.hero-visual > .ewha-watermark img { width: 100% !important; height: 100% !important; opacity: .32 !important; object-fit: contain !important; }
+@media (max-width: 620px) {
+  .hero-visual > .ewha-watermark { top: 20px !important; right: -90px !important; bottom: 20px !important; width: 430px !important; height: auto !important; }
+  .hero-visual > .ewha-watermark img { opacity: .32 !important; }
+}
+
 /* Opening hero logo and QR icon: keep them above the visual copy and clip at the right edge. */
 .hero-visual { overflow: hidden; }
 .hero-visual > .ewha-watermark { display: grid !important; position: absolute; z-index: 0; top: 50%; right: -180px; left: auto; width: 560px; height: 560px; border: 0; transform: translateY(-50%) rotate(-8deg); }
@@ -305,6 +323,16 @@ dialog::backdrop { background: rgba(5,20,36,.7); backdrop-filter: blur(3px); }
 [data-theme="dark"] { --surface: #10221b; --canvas: #0b1712; --ink: #eef7f1; --muted: #b9c9c0; --line: #2a4438; --green-wash: #173127; --green-soft: #214638; --green-pale: #9bc8ad; --gray-700: #c4d3cb; --navy-950: #001c11; --navy-900: #0b6a46; --navy-800: #3b9a70; --shadow: 0 18px 50px rgba(0,0,0,.28); }
 [data-theme="dark"] body, [data-theme="dark"] .site-header, [data-theme="dark"] .equipment-card, [data-theme="dark"] dialog, [data-theme="dark"] .search-box input, [data-theme="dark"] .field input, [data-theme="dark"] .purpose-field textarea, [data-theme="dark"] .return-equipment select { color: var(--ink); background: var(--surface); }
 [data-theme="dark"] .site-header { border-bottom-color: var(--line); background: rgba(16,34,27,.96); }
+
+/* Final seal sizing: vertical edges stay inside; only the right side is cropped. */
+.hero { overflow: hidden; }
+.hero-visual > .ewha-watermark { display: grid !important; position: absolute !important; z-index: 1 !important; top: 24px !important; right: -220px !important; bottom: 24px !important; left: auto !important; width: 760px !important; height: auto !important; border: 0 !important; transform: none !important; }
+.hero-visual > .ewha-watermark::before { display: none !important; }
+.hero-visual > .ewha-watermark img { width: 100% !important; height: 100% !important; opacity: .32 !important; filter: none !important; object-fit: contain !important; }
+@media (max-width: 620px) {
+  .hero-visual > .ewha-watermark { top: 20px !important; right: -90px !important; bottom: 20px !important; width: 430px !important; height: auto !important; }
+  .hero-visual > .ewha-watermark img { opacity: .32 !important; }
+}
 [data-theme="dark"] .card-meta, [data-theme="dark"] .detail-section, [data-theme="dark"] .basket-summary, [data-theme="dark"] .dialog-header { border-color: var(--line); }
 [data-theme="dark"] .dialog-header { background: var(--surface); }
 [data-theme="dark"] .return-button, [data-theme="dark"] .utility-button, [data-theme="dark"] .icon-button { color: var(--ink); background: var(--surface); border-color: var(--line); }
@@ -366,13 +394,14 @@ dialog::backdrop { background: rgba(5,20,36,.7); backdrop-filter: blur(3px); }
 }
 
 /* Final hero watermark correction: upright, visible, and responsive. */
+.hero { overflow: hidden; }
 .hero-visual { min-height: 540px; }
-.hero-visual > .ewha-watermark { display: grid !important; position: absolute !important; z-index: 0 !important; top: 50% !important; right: -120px !important; left: auto !important; width: 540px !important; height: 540px !important; border: 0 !important; transform: translateY(-50%) !important; }
+.hero-visual > .ewha-watermark { display: grid !important; position: absolute !important; z-index: 1 !important; top: 24px !important; right: -220px !important; bottom: 24px !important; left: auto !important; width: 760px !important; height: auto !important; border: 0 !important; transform: none !important; }
 .hero-visual > .ewha-watermark::before { display: none !important; }
-.hero-visual > .ewha-watermark img { width: 540px !important; height: 540px !important; opacity: .30 !important; filter: none !important; object-fit: contain !important; }
+.hero-visual > .ewha-watermark img { width: 100% !important; height: 100% !important; opacity: .32 !important; filter: none !important; object-fit: contain !important; }
 .hero-visual-copy { z-index: 1 !important; }
 @media (max-width: 620px) {
   .hero-visual { min-height: 350px; margin-top: -8px; }
-  .hero-visual > .ewha-watermark { top: 50% !important; right: -70px !important; width: 330px !important; height: 330px !important; }
-  .hero-visual > .ewha-watermark img { width: 330px !important; height: 330px !important; opacity: .30 !important; }
+  .hero-visual > .ewha-watermark { top: 20px !important; right: -90px !important; bottom: 20px !important; width: 430px !important; height: auto !important; }
+  .hero-visual > .ewha-watermark img { width: 100% !important; height: 100% !important; opacity: .32 !important; }
 }
