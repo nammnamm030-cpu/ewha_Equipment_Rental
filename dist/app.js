@@ -153,7 +153,7 @@ const elements = {
   search: document.querySelector("#searchInput"), available: document.querySelector("#availableOnly"),
   result: document.querySelector("#resultSummary"), empty: document.querySelector("#emptyState"),
   detailDialog: document.querySelector("#detailDialog"), detailContent: document.querySelector("#detailContent"), equipmentPickerDialog: document.querySelector("#equipmentPickerDialog"), equipmentPickerGrid: document.querySelector("#equipmentPickerGrid"),
-  equipmentPickerSearch: document.querySelector("#equipmentPickerSearch"), equipmentPickerCategory: document.querySelector("#equipmentPickerCategory"), headerProfile: document.querySelector("#headerProfile"),
+  equipmentPickerSearch: document.querySelector("#equipmentPickerSearch"), equipmentPickerCategories: document.querySelector("#equipmentPickerCategories"), headerProfile: document.querySelector("#headerProfile"),
   basketDialog: document.querySelector("#basketDialog"), basketBody: document.querySelector("#basketBody"),
   returnDialog: document.querySelector("#returnDialog"), returnBody: document.querySelector("#returnBody"),
   basketCount: document.querySelector("#basketCount"), rentalList: document.querySelector("#rentalList"),
@@ -375,7 +375,7 @@ function renderEquipment() {
 
 function renderEquipmentPicker() {
   const query = String(elements.equipmentPickerSearch?.value || "").trim().toLocaleLowerCase("ko-KR");
-  const category = elements.equipmentPickerCategory?.value || "전체";
+  const category = elements.equipmentPickerCategories?.dataset.category || "전체";
   const available = equipment.filter((item) => (item.stock > 0 || item.category === "카메라") && (category === "전체" || item.category === category) && (!query || `${item.name} ${item.assetNo} ${item.description}`.toLocaleLowerCase("ko-KR").includes(query)));
   elements.equipmentPickerGrid.innerHTML = available.map((item) => `<article class="equipment-card" data-picker-detail="${escapeHtml(item.id)}"><div class="card-visual" style="--visual-bg:${item.color}"><img class="equipment-photo" src="${imageUrlForEquipment(item)}" alt="${escapeHtml(item.name)} 실제 장비 사진" loading="lazy" /><span class="stock-badge ${item.stock === 0 ? "unavailable" : ""}">${item.stock === 0 ? "카메라 예약 가능" : `대여 가능 ${item.stock}개`}</span></div><div class="card-body"><span class="card-code">${escapeHtml(item.assetNo || "")}</span><h3>${escapeHtml(item.name)}</h3><button class="card-rent-button" type="button" data-picker-rent="${escapeHtml(item.id)}">${item.stock === 0 ? "예약 신청" : "대여하기"}</button></div></article>`).join("");
   if (!available.length) elements.equipmentPickerGrid.innerHTML = `<div class="rental-empty">검색 조건에 맞는 장비가 없습니다.</div>`;
@@ -383,9 +383,9 @@ function renderEquipmentPicker() {
 
 function openEquipmentPicker() {
   const pickerCategories = ["전체", ...new Set(equipment.map((item) => item.category).filter(Boolean))];
-  elements.equipmentPickerCategory.innerHTML = pickerCategories.map((category) => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`).join("");
+  elements.equipmentPickerCategories.innerHTML = pickerCategories.map((category) => `<button class="filter-button${category === "전체" ? " active" : ""}" type="button" data-picker-category="${escapeHtml(category)}" aria-pressed="${category === "전체"}">${escapeHtml(category)}${category === "전체" ? ` <span>(${equipment.length})</span>` : ""}</button>`).join("");
+  elements.equipmentPickerCategories.dataset.category = "전체";
   elements.equipmentPickerSearch.value = "";
-  elements.equipmentPickerCategory.value = "전체";
   renderEquipmentPicker();
   openDialog(elements.equipmentPickerDialog);
 }
@@ -1311,7 +1311,13 @@ elements.equipmentPickerDialog?.addEventListener("click", (event) => {
   if (card && !rent) openDetail(card.dataset.pickerDetail);
 });
 elements.equipmentPickerSearch?.addEventListener("input", renderEquipmentPicker);
-elements.equipmentPickerCategory?.addEventListener("change", renderEquipmentPicker);
+elements.equipmentPickerCategories?.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-picker-category]");
+  if (!button) return;
+  elements.equipmentPickerCategories.dataset.category = button.dataset.pickerCategory;
+  elements.equipmentPickerCategories.querySelectorAll("[data-picker-category]").forEach((item) => { const active = item === button; item.classList.toggle("active", active); item.setAttribute("aria-pressed", String(active)); });
+  renderEquipmentPicker();
+});
 elements.basketDialog.addEventListener("click", (event) => {
   if (event.target.closest(".close-dialog")) closeDialog(elements.basketDialog);
   const remove = event.target.closest("[data-remove-id]");

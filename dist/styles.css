@@ -263,6 +263,7 @@ dialog::backdrop { background: rgba(5,20,36,.7); backdrop-filter: blur(3px); }
 @media (max-width: 620px) { .equipment-picker-grid { grid-template-columns: 1fr; }.profile-logout { margin-left: 0; } }
 .profile-summary { display: none !important; }
 .header-profile { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; color: var(--navy-900); font-size: 11px; font-weight: 800; white-space: nowrap; }.header-profile[hidden] { display: none; }.header-logout { padding: 5px 8px; border: 1px solid var(--line); border-radius: 7px; color: var(--navy-900); background: var(--surface); font-size: 10px; font-weight: 800; cursor: pointer; }.picker-toolbar { display: flex; gap: 10px; margin-bottom: 16px; }.picker-toolbar input, .picker-toolbar select { min-height: 42px; box-sizing: border-box; padding: 0 11px; border: 1px solid var(--line); border-radius: 8px; color: var(--ink); background: var(--surface); font: inherit; font-size: 12px; }.picker-toolbar input { flex: 1; }.picker-toolbar select { min-width: 150px; }
+.picker-category-filters { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 12px; margin-bottom: 4px; scrollbar-width: thin; }.picker-category-filters .filter-button { flex: 0 0 auto; }
 @media (max-width: 620px) { .header-profile { order: 3; width: 100%; justify-content: flex-end; margin-left: 0; }.site-header .header-inner { flex-wrap: wrap; }.picker-toolbar { flex-direction: column; }.picker-toolbar select { width: 100%; } }
 
 /* Keep the seal fully visible vertically; let only the right edge crop. */
