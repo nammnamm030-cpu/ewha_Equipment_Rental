@@ -88,8 +88,9 @@ const studentProfileKey = "borrowbom-student-profile-v1";
 const languageKey = "borrowbom-language-v1";
 const themeKey = "borrowbom-theme-v1";
 const operatorEmail = "nammnamm030@ewhain.net";
-const operatorName = "운영자";
-const operatorStudentNumber = "OPERATOR";
+const operatorName = "조아현";
+const operatorStudentNumber = "262MZG03";
+const operatorPassword = "whdkgus12@";
 const translations = {
   ko: { brand: "이화여자대학교 조형예술대학 장비대여", equipment: "장비 찾기", guide: "이용 안내", rentals: "나의 대여", basket: "대여 바구니", return: "반납 신청하기", rent: "대여하기", heroDesc: "필요한 장비를 찾고, 가능한 시간을 확인하고, 바로 빌린다.", search: "장비명, 용도를 검색해보세요", available: "대여 가능만", reset: "필터 초기화", detail: "상세 보기", unavailable: "대여 불가", addCart: "대여 바구니에 담기", cartEmpty: "대여 바구니가 비어 있어요", studentCheck: "학생 확인", rentalStudentCheck: "대여 학생 확인", returnStudentCheck: "반납 신청하기", name: "이름", studentNumber: "학번", email: "학교 이메일", phone: "전화번호", purpose: "이용 목적", pastRentals: "과거 대여 내역", componentCheck: "구성품을 모두 확인했나요?", languageLabel: "한국어", themeLight: "라이트 모드", themeDark: "나이트 모드" },
   en: { brand: "Ewha Womans University College of Art Equipment Rental", equipment: "Find equipment", guide: "Guide", rentals: "My rentals", basket: "Rental cart", return: "Return", rent: "Rent", heroDesc: "Find the equipment you need, check availability, and rent it.", search: "Search equipment or use", available: "Available only", reset: "Reset filters", detail: "View details", unavailable: "Unavailable", addCart: "Add to rental cart", cartEmpty: "Your rental cart is empty", studentCheck: "Student check", rentalStudentCheck: "Rental student check", returnStudentCheck: "Return student check", name: "Name", studentNumber: "Student number", email: "School email", phone: "Phone", purpose: "Purpose", pastRentals: "Past rentals", componentCheck: "Have you checked all components?", languageLabel: "English", themeLight: "Light mode", themeDark: "Dark mode" }
@@ -575,7 +576,7 @@ function submitStudentCheck(event) {
   const email = validation.validateEmail(form.elements.requesterEmail.value);
   const studentNumber = validation.validateStudentNumber(form.elements.studentNumber.value);
   const error = form.querySelector("#authError");
-  const isOperatorLogin = email.value === operatorEmail;
+  const isOperatorLogin = email.value === operatorEmail && studentNumber.value === operatorStudentNumber;
   const firstError = (authMode === "login" ? [studentNumber, { valid: password.length >= 4, message: "비밀번호를 4자 이상 입력해주세요." }] : [name, studentNumber, email, { valid: password.length >= 4, message: "비밀번호를 4자 이상 입력해주세요." }]).find((result) => !result.valid);
   if (firstError) { error.textContent = firstError.message; return; }
   const accounts = readStorage(storageKeys.accounts, []);
@@ -588,9 +589,9 @@ function submitStudentCheck(event) {
     openStudentCheck(elements.authDialog.dataset.next || "basket");
     return;
   }
-  if (isOperatorLogin) {
-    if (!name.value || !studentNumber.value) { error.textContent = "운영자는 이름과 학번도 입력해야 합니다."; return; }
-    const profile = { name: name.value, studentNumber: studentNumber.value, email: email.value };
+  const configuredOperatorLogin = studentNumber.value === operatorStudentNumber && password === operatorPassword;
+  if (configuredOperatorLogin) {
+    const profile = { name: operatorName, studentNumber: operatorStudentNumber, email: operatorEmail };
     writeStorage(studentProfileKey, profile);
     renderRentals(); closeDialog(elements.authDialog); openOperatorDashboard(profile); return;
   }
@@ -600,15 +601,13 @@ function submitStudentCheck(event) {
   writeStorage(studentProfileKey, profile);
   renderRentals();
   closeDialog(elements.authDialog);
-  if (account.email === operatorEmail) {
-    openOperatorDashboard(profile);
-  } else if (elements.authDialog.dataset.next === "basket") {
-    renderBasket(); openDialog(elements.basketDialog); showToast("학생 확인이 완료되었습니다. 대여 신청을 시작해주세요.");
+  if (elements.authDialog.dataset.next === "basket") {
+    renderBasket(); openDialog(elements.basketDialog); showToast(`${profile.name}님 안녕하세요. 대여 신청을 시작해주세요.`);
   } else if (elements.authDialog.dataset.next === "return") {
     openReturnWorkspace(profile);
   } else {
     document.querySelector("#equipment").scrollIntoView({ behavior: "smooth" });
-    showToast("학생 확인이 완료되었습니다. 대여할 장비를 선택해주세요.");
+    showToast(`${profile.name}님 안녕하세요. 대여할 장비를 선택해주세요.`);
   }
 }
 
