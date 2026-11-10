@@ -153,6 +153,7 @@ const elements = {
   search: document.querySelector("#searchInput"), available: document.querySelector("#availableOnly"),
   result: document.querySelector("#resultSummary"), empty: document.querySelector("#emptyState"),
   detailDialog: document.querySelector("#detailDialog"), detailContent: document.querySelector("#detailContent"), equipmentPickerDialog: document.querySelector("#equipmentPickerDialog"), equipmentPickerGrid: document.querySelector("#equipmentPickerGrid"),
+  equipmentPickerSearch: document.querySelector("#equipmentPickerSearch"), equipmentPickerCategory: document.querySelector("#equipmentPickerCategory"), headerProfile: document.querySelector("#headerProfile"),
   basketDialog: document.querySelector("#basketDialog"), basketBody: document.querySelector("#basketBody"),
   returnDialog: document.querySelector("#returnDialog"), returnBody: document.querySelector("#returnBody"),
   basketCount: document.querySelector("#basketCount"), rentalList: document.querySelector("#rentalList"),
@@ -372,9 +373,20 @@ function renderEquipment() {
   elements.grid.hidden = filtered.length === 0;
 }
 
-function openEquipmentPicker() {
-  const available = equipment.filter((item) => item.stock > 0 || item.category === "카메라");
+function renderEquipmentPicker() {
+  const query = String(elements.equipmentPickerSearch?.value || "").trim().toLocaleLowerCase("ko-KR");
+  const category = elements.equipmentPickerCategory?.value || "전체";
+  const available = equipment.filter((item) => (item.stock > 0 || item.category === "카메라") && (category === "전체" || item.category === category) && (!query || `${item.name} ${item.assetNo} ${item.description}`.toLocaleLowerCase("ko-KR").includes(query)));
   elements.equipmentPickerGrid.innerHTML = available.map((item) => `<article class="equipment-card" data-picker-detail="${escapeHtml(item.id)}"><div class="card-visual" style="--visual-bg:${item.color}"><img class="equipment-photo" src="${imageUrlForEquipment(item)}" alt="${escapeHtml(item.name)} 실제 장비 사진" loading="lazy" /><span class="stock-badge ${item.stock === 0 ? "unavailable" : ""}">${item.stock === 0 ? "카메라 예약 가능" : `대여 가능 ${item.stock}개`}</span></div><div class="card-body"><span class="card-code">${escapeHtml(item.assetNo || "")}</span><h3>${escapeHtml(item.name)}</h3><button class="card-rent-button" type="button" data-picker-rent="${escapeHtml(item.id)}">${item.stock === 0 ? "예약 신청" : "대여하기"}</button></div></article>`).join("");
+  if (!available.length) elements.equipmentPickerGrid.innerHTML = `<div class="rental-empty">검색 조건에 맞는 장비가 없습니다.</div>`;
+}
+
+function openEquipmentPicker() {
+  const pickerCategories = ["전체", ...new Set(equipment.map((item) => item.category).filter(Boolean))];
+  elements.equipmentPickerCategory.innerHTML = pickerCategories.map((category) => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`).join("");
+  elements.equipmentPickerSearch.value = "";
+  elements.equipmentPickerCategory.value = "전체";
+  renderEquipmentPicker();
   openDialog(elements.equipmentPickerDialog);
 }
 
@@ -1175,9 +1187,13 @@ function renderRentals() {
   const profile = readStudentProfile();
   if (elements.profileSummary) {
     elements.profileSummary.hidden = !profile;
-    elements.profileSummary.innerHTML = profile ? `<strong>${escapeHtml(profile.name || "")}님 안녕하세요</strong><span>${escapeHtml(profile.studentNumber || "")}</span><small>${escapeHtml(profile.email || "")}</small><button class="profile-logout" type="button">로그아웃</button>` : "";
+    elements.profileSummary.innerHTML = profile ? `<strong>${escapeHtml(profile.name || "")}님 안녕하세요</strong><span>${escapeHtml(profile.studentNumber || "")}</span><small>${escapeHtml(profile.email || "")}</small>` : "";
   }
-  elements.profileSummary?.querySelector(".profile-logout")?.addEventListener("click", () => {
+  if (elements.headerProfile) {
+    elements.headerProfile.hidden = !profile;
+    elements.headerProfile.innerHTML = profile ? `<span>${escapeHtml(profile.name || "")}님 안녕하세요</span><button class="header-logout" type="button">로그아웃</button>` : "";
+  }
+  elements.headerProfile?.querySelector(".header-logout")?.addEventListener("click", () => {
     localStorage.removeItem(studentProfileKey);
     closeDialog(elements.equipmentPickerDialog); closeDialog(elements.basketDialog); closeDialog(elements.returnDialog);
     renderRentals(); showToast("로그아웃되었습니다.");
@@ -1294,6 +1310,8 @@ elements.equipmentPickerDialog?.addEventListener("click", (event) => {
   const card = event.target.closest("[data-picker-detail]");
   if (card && !rent) openDetail(card.dataset.pickerDetail);
 });
+elements.equipmentPickerSearch?.addEventListener("input", renderEquipmentPicker);
+elements.equipmentPickerCategory?.addEventListener("change", renderEquipmentPicker);
 elements.basketDialog.addEventListener("click", (event) => {
   if (event.target.closest(".close-dialog")) closeDialog(elements.basketDialog);
   const remove = event.target.closest("[data-remove-id]");

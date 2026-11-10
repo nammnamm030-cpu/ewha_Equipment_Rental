@@ -27,6 +27,7 @@
           <a href="#guide">이용 안내</a>
           <a href="#my-rentals">나의 대여</a>
         </nav>
+        <div class="header-profile" id="headerProfile" hidden></div>
         <button class="basket-button" id="basketButton" type="button" aria-haspopup="dialog">
           <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 4h2l2.2 10.2a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.6L20 8H7M10 20h.01M17 20h.01"/></svg>
           <span>대여 바구니</span>
@@ -143,7 +144,7 @@
 
     <dialog class="equipment-picker-dialog" id="equipmentPickerDialog" aria-labelledby="equipmentPickerTitle">
       <div class="dialog-header"><div><p class="section-kicker">EQUIPMENT</p><h2 id="equipmentPickerTitle">대여할 장비를 선택하세요</h2></div><button class="icon-button close-equipment-picker" type="button" aria-label="장비 선택 닫기">×</button></div>
-      <div class="equipment-picker-body"><div class="equipment-grid equipment-picker-grid" id="equipmentPickerGrid"></div></div>
+      <div class="equipment-picker-body"><div class="picker-toolbar"><input id="equipmentPickerSearch" type="search" placeholder="장비명 또는 식별번호 검색" /><select id="equipmentPickerCategory" aria-label="장비 카테고리"></select></div><div class="equipment-grid equipment-picker-grid" id="equipmentPickerGrid"></div></div>
     </dialog>
 
     <dialog class="basket-dialog" id="basketDialog" aria-labelledby="basketTitle">
