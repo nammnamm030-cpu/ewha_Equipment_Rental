@@ -957,7 +957,7 @@ function renderReturn(history = [], profile = {}) {
   const entries = history;
   const equipmentOptions = entries.map((entry) => `<label class="return-item-option"><input type="checkbox" name="equipmentIds" value="${escapeHtml(entry.equipmentId)}" data-return-item /><span><strong>${escapeHtml(entry.name)}</strong><small>${escapeHtml(entry.assetNo || "식별번호 미등록")}${entry.startDate ? ` · ${escapeHtml(entry.startDate)} ~ ${escapeHtml(entry.endDate || "")}` : ""}</small></span></label>`).join("");
   elements.returnBody.innerHTML = `<div class="return-student-context"><strong>${escapeHtml(profile.name || "학생")}님의 반납 신청</strong><span>${history.length ? "내가 대여한 장비를 여러 개 선택한 뒤 한 번에 신청할 수 있어요." : "현재 반납할 수 있는 본인 대여 장비가 없습니다."}</span></div>${history.length ? `<div class="return-history-note">현재 반납 가능한 대여 ${history.length}건을 찾았어요.</div>` : `<div class="return-history-empty">본인 대여 내역이 있을 때만 반납 장비가 표시됩니다.</div>`}<form id="returnForm" novalidate>
-    <div class="return-equipment return-multi-list"><label class="return-list-label">반납할 장비 <span aria-hidden="true">*</span></label>${equipmentOptions}</div>
+    <div class="return-equipment return-multi-list"><label class="return-list-label">반납할 장비 <span aria-hidden="true">*</span></label><label class="return-select-all"><input id="returnSelectAll" type="checkbox" /> 전체 선택</label>${equipmentOptions}</div>
     <div id="returnComponents" class="component-checklist" aria-live="polite"></div>
     <div class="student-fields">
       <div class="field"><label for="returnerName">이름 <span aria-hidden="true">*</span></label><input id="returnerName" name="requesterName" type="text" autocomplete="name" value="${escapeHtml(profile.name || "")}" required /></div>
@@ -973,7 +973,9 @@ function renderReturn(history = [], profile = {}) {
     const selected = [...form.querySelectorAll("[data-return-item]:checked")].map((checkbox) => equipment.find((entry) => entry.id === checkbox.value)).filter(Boolean);
     elements.returnBody.querySelector("#returnComponents").innerHTML = selected.length ? selected.map((item) => (item.components || []).length ? `<div class="return-component-group"><strong>${escapeHtml(item.name)} 구성품</strong>${item.components.map((component, index) => `<label><input type="checkbox" name="component-${item.id}-${index}" value="${escapeHtml(component)}" /> <span>${escapeHtml(component)}</span></label>`).join("")}</div>` : `<div class="return-component-group"><strong>${escapeHtml(item.name)}</strong><label><input type="checkbox" name="component-${item.id}-empty" /> 구성품 없음 확인</label></div>`).join("") : `<p class="return-components-hint">장비를 선택하면 구성품 확인 항목이 나타납니다.</p>`;
   };
-  form.querySelectorAll("[data-return-item]").forEach((checkbox) => checkbox.addEventListener("change", renderComponents));
+  const selectAll = form.querySelector("#returnSelectAll");
+  selectAll?.addEventListener("change", () => { form.querySelectorAll("[data-return-item]").forEach((checkbox) => { checkbox.checked = selectAll.checked; }); renderComponents(); });
+  form.querySelectorAll("[data-return-item]").forEach((checkbox) => checkbox.addEventListener("change", () => { selectAll.checked = [...form.querySelectorAll("[data-return-item]")].every((item) => item.checked); renderComponents(); }));
   if (scannedEquipmentId) form.querySelector(`[data-return-item][value="${CSS.escape(scannedEquipmentId)}"]`)?.click();
   form.addEventListener("submit", submitReturn);
 }
