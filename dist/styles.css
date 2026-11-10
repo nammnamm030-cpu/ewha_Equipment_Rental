@@ -256,6 +256,8 @@ dialog::backdrop { background: rgba(5,20,36,.7); backdrop-filter: blur(3px); }
 /* Override horizontal rental rail so the full list is visible without sideways scrolling. */
 .rental-list { display: grid !important; grid-template-columns: 1fr; overflow: visible !important; padding: 4px 2px 14px !important; }
 .rental-item { flex: initial !important; width: auto !important; min-width: 0 !important; }
+.rental-extension-button { justify-self: start; padding: 6px 10px; border: 1px solid var(--navy-900); border-radius: 7px; color: var(--navy-900); background: #fff; font-size: 11px; font-weight: 800; cursor: pointer; }
+.confirm-body textarea { width: 100%; min-height: 76px; box-sizing: border-box; padding: 10px; border: 1px solid var(--line); border-radius: 8px; resize: vertical; font: inherit; }
 
 /* Keep the seal fully visible vertically; let only the right edge crop. */
 .hero { overflow: hidden; }

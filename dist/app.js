@@ -78,7 +78,7 @@ const fallbackEquipment = [
 let equipment = fallbackEquipment;
 equipment = equipment.map((item) => ({ ...item, maxDays: 14 }));
 let categories = ["전체", ...new Set(equipment.map((item) => item.category))];
-const storageKeys = { cart: "borrowbom-cart-v1", applications: "borrowbom-applications-v1", holidays: "borrowbom-holidays-v1", operatorEquipment: "borrowbom-operator-equipment-v1", accounts: "borrowbom-accounts-v1" };
+const storageKeys = { cart: "borrowbom-cart-v1", applications: "borrowbom-applications-v1", holidays: "borrowbom-holidays-v1", operatorEquipment: "borrowbom-operator-equipment-v1", accounts: "borrowbom-accounts-v1", extensions: "borrowbom-extension-requests-v1" };
 const persistedOperatorEquipment = readStorage(storageKeys.operatorEquipment, []);
 if (persistedOperatorEquipment.length) {
   equipment = equipment.concat(persistedOperatorEquipment);
@@ -118,6 +118,7 @@ let qrScanner = null;
 let scannedEquipmentId = "";
 let operatorReturnName = "";
 let pendingApplicationForm = null;
+let pendingExtensionRental = null;
 let authMode = "login";
 const koreanHolidays = {
   "2026-01-01": "신정", "2026-02-16": "설날 연휴", "2026-02-17": "설날", "2026-02-18": "설날 연휴",
@@ -154,7 +155,7 @@ const elements = {
   basketDialog: document.querySelector("#basketDialog"), basketBody: document.querySelector("#basketBody"),
   returnDialog: document.querySelector("#returnDialog"), returnBody: document.querySelector("#returnBody"),
   basketCount: document.querySelector("#basketCount"), rentalList: document.querySelector("#rentalList"),
-  toast: document.querySelector("#toast"), authDialog: document.querySelector("#authDialog"), operatorDialog: document.querySelector("#operatorDialog"), operatorBody: document.querySelector("#operatorBody"), profileSummary: document.querySelector("#profileSummary"), rentalConfirmDialog: document.querySelector("#rentalConfirmDialog")
+  toast: document.querySelector("#toast"), authDialog: document.querySelector("#authDialog"), operatorDialog: document.querySelector("#operatorDialog"), operatorBody: document.querySelector("#operatorBody"), profileSummary: document.querySelector("#profileSummary"), rentalConfirmDialog: document.querySelector("#rentalConfirmDialog"), extensionDialog: document.querySelector("#extensionDialog")
   , qrDialog: document.querySelector("#qrDialog"), qrBody: document.querySelector("#qrBody"), qrReader: document.querySelector("#qrReader"), qrResult: document.querySelector("#qrResult"), qrManualCode: document.querySelector("#qrManualCode")
 };
 
@@ -542,8 +543,8 @@ function openStudentCheck(next = "basket") {
   const emailField = form.elements.requesterEmail.closest(".field");
   const passwordField = form.elements.password.closest(".field");
   const loginMode = authMode === "login";
-  nameField.hidden = false;
-  emailField.hidden = false;
+  nameField.hidden = loginMode;
+  emailField.hidden = loginMode;
   form.elements.requesterName.required = authMode === "signup";
   form.elements.requesterEmail.required = authMode === "signup";
   title.textContent = authMode === "signup" ? "회원가입" : (isReturn ? t("returnStudentCheck") : t("rentalStudentCheck"));
@@ -599,7 +600,9 @@ function submitStudentCheck(event) {
   writeStorage(studentProfileKey, profile);
   renderRentals();
   closeDialog(elements.authDialog);
-  if (elements.authDialog.dataset.next === "basket") {
+  if (account.email === operatorEmail) {
+    openOperatorDashboard(profile);
+  } else if (elements.authDialog.dataset.next === "basket") {
     renderBasket(); openDialog(elements.basketDialog); showToast("학생 확인이 완료되었습니다. 대여 신청을 시작해주세요.");
   } else if (elements.authDialog.dataset.next === "return") {
     openReturnWorkspace(profile);
@@ -736,12 +739,16 @@ function renderOperatorDashboard(profile) {
   const formatRequestTime = (application) => { const date = new Date(application.createdAt); return Number.isNaN(date.getTime()) ? "-" : date.toLocaleString("ko-KR", { dateStyle: "short", timeStyle: "short" }); };
   const pendingApplications = applications.filter((application) => (application.requestType || "대여") === "대여" && !["approved", "rejected", "returned", "반납 완료", "거절"].includes(application.status));
   const approvalCards = pendingApplications.length ? pendingApplications.map((application) => `<article class="approval-card"><div><strong>${escapeHtml(application.name || "-")}</strong><span>${escapeHtml(application.requesterName || "-")} · ${escapeHtml(application.studentNumber || "-")}</span><small>${escapeHtml(application.requesterEmail || "-")} · ${escapeHtml(application.startDate || "-")} ~ ${escapeHtml(application.endDate || "-")}</small></div><div class="approval-actions"><button class="primary-button" type="button" data-approve-id="${escapeHtml(application.id)}">승인</button><button class="secondary-button" type="button" data-reject-id="${escapeHtml(application.id)}">거절</button></div></article>`).join("") : `<p class="approval-empty">현재 승인 대기 중인 대여 신청이 없습니다.</p>`;
+  const extensionRequests = readStorage(storageKeys.extensions, []);
+  const pendingExtensions = extensionRequests.filter((request) => request.status === "pending");
+  const extensionCards = pendingExtensions.length ? pendingExtensions.map((request) => `<article class="approval-card"><div><strong>${escapeHtml(request.equipmentName || "-")}</strong><span>${escapeHtml(request.requesterName || "-")} · ${escapeHtml(request.assetNo || "")}</span><small>${escapeHtml(request.currentEndDate)} → ${escapeHtml(request.requestedEndDate)} · ${escapeHtml(request.reason || "")}</small></div><div class="approval-actions"><button class="primary-button" type="button" data-extension-approve="${escapeHtml(request.id)}">승인</button><button class="secondary-button" type="button" data-extension-reject="${escapeHtml(request.id)}">거절</button></div></article>`).join("") : `<p class="approval-empty">현재 연장 신청이 없습니다.</p>`;
   const inventoryCategories = ["전체", ...new Set(equipment.map((item) => item.category).filter(Boolean))];
   const inventoryRows = equipment.map((item) => `<label class="inventory-status-row" data-inventory-category="${escapeHtml(item.category || "기타")}"><span><strong>${escapeHtml(item.name)}</strong><small>${escapeHtml(item.assetNo || "식별번호 미등록")}</small></span><select data-equipment-status="${escapeHtml(item.id)}"><option value="대출 가능" ${(item.status || (item.stock > 0 ? "대출 가능" : "대출 중")) === "대출 가능" ? "selected" : ""}>대출 가능</option><option value="대출 중" ${(item.status || "") === "대출 중" ? "selected" : ""}>대출 중</option><option value="대출 불가" ${(item.status || "") === "대출 불가" ? "selected" : ""}>대출 불가</option></select></label>`).join("");
   const borrowerRows = applications.length ? applications.map((application) => `<tr class="${isOverdue(application) ? "overdue" : ""}"><td>${escapeHtml(application.requesterName || "-")}</td><td>${escapeHtml(application.requesterEmail || "-")}</td><td>${escapeHtml(application.studentNumber || "-")}</td><td>${escapeHtml(application.name || "-")}</td><td>${escapeHtml(application.startDate || "-")} ~ ${escapeHtml(application.endDate || "-")}</td><td>${escapeHtml(formatRequestTime(application))}</td><td>${isOverdue(application) ? "연체" : escapeHtml(statusLabels[application.status] || application.status || "신청")}</td></tr>`).join("") : `<tr><td colspan="7">현재 대여 신청이 없습니다.</td></tr>`;
   const returnPanel = `<section class="operator-panel"><div class="operator-panel-heading"><div><p class="section-kicker">RETURN CHECK-IN</p><h3>운영자 반납 처리</h3><p>대여자 이름을 검색한 뒤 반납할 장비를 여러 개 선택해 한 번에 처리합니다.</p></div></div><form id="operatorReturnForm" class="operator-return-form"><div class="field"><label for="operatorReturnName">대여자 이름</label><input id="operatorReturnName" placeholder="대여자 이름을 입력하세요" required /></div><button class="primary-button" type="submit">대여 목록 검색</button></form><p class="form-error" id="operatorReturnError" role="alert"></p><div id="operatorReturnCandidates" class="operator-return-candidates"></div></section>`;
   elements.operatorBody.innerHTML = `<div class="operator-summary"><div><span>등록 장비</span><strong>${equipment.length}대</strong></div><div><span>대여 신청</span><strong>${applications.length}건</strong></div><div><span>운영자</span><strong>${escapeHtml(profile.email)}</strong></div></div>
     <section class="operator-panel"><div class="operator-panel-heading"><div><p class="section-kicker">APPROVALS</p><h3>대여 신청 승인</h3><p>학생이 신청한 대여를 확인한 뒤 승인 또는 거절할 수 있습니다.</p></div><button class="primary-button operator-approve-all" type="button" ${pendingApplications.length ? "" : "disabled"}>전체 승인</button></div><div class="approval-list">${approvalCards}</div></section>
+    <section class="operator-panel"><div class="operator-panel-heading"><div><p class="section-kicker">EXTENSIONS</p><h3>연장 신청 승인</h3><p>대여 기간 연장 요청을 확인하고 승인하거나 거절합니다.</p></div></div><div class="approval-list">${extensionCards}</div></section>
     ${returnPanel}
     <section class="operator-panel"><div class="operator-panel-heading"><div><p class="section-kicker">EQUIPMENT STATUS</p><h3>장비 대여 상태 관리</h3><p>카테고리를 선택하거나 장비명·식별번호를 검색해 상태를 변경할 수 있습니다.</p></div></div><div class="inventory-toolbar"><label class="inventory-category-filter" for="operatorInventoryCategory">장비 카테고리<select id="operatorInventoryCategory">${inventoryCategories.map((category) => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`).join("")}</select></label><label class="inventory-search" for="operatorInventorySearch"><span class="sr-only">장비 상태 검색</span><input id="operatorInventorySearch" type="search" placeholder="장비명 또는 식별번호 검색" /></label></div><div class="inventory-status-list">${inventoryRows}</div></section>
     <section class="operator-panel"><div class="operator-panel-heading"><div><p class="section-kicker">ADD EQUIPMENT</p><h3>새 장비 등록</h3><p>식별코드가 <strong>카테고리약어-등록연도-장비번호</strong> 형식으로 자동 부여됩니다. 예: CAM-2026-001</p></div></div>
@@ -812,6 +819,22 @@ function renderOperatorDashboard(profile) {
   };
   elements.operatorBody.querySelectorAll("[data-approve-id]").forEach((button) => button.addEventListener("click", () => updateApproval(button.dataset.approveId, "approved")));
   elements.operatorBody.querySelectorAll("[data-reject-id]").forEach((button) => button.addEventListener("click", () => updateApproval(button.dataset.rejectId, "rejected")));
+  const updateExtension = (requestId, status) => {
+    const requests = readStorage(storageKeys.extensions, []);
+    const request = requests.find((entry) => entry.id === requestId);
+    if (!request) return;
+    request.status = status;
+    if (status === "approved") {
+      const rental = state.applications.find((entry) => entry.id === request.rentalId);
+      if (rental) rental.endDate = request.requestedEndDate;
+      writeStorage(storageKeys.applications, state.applications);
+    }
+    writeStorage(storageKeys.extensions, requests);
+    renderRentals(); renderOperatorDashboard(profile);
+    showToast(status === "approved" ? "연장 신청을 승인했습니다." : "연장 신청을 거절했습니다.");
+  };
+  elements.operatorBody.querySelectorAll("[data-extension-approve]").forEach((button) => button.addEventListener("click", () => updateExtension(button.dataset.extensionApprove, "approved")));
+  elements.operatorBody.querySelectorAll("[data-extension-reject]").forEach((button) => button.addEventListener("click", () => updateExtension(button.dataset.extensionReject, "rejected")));
   elements.operatorBody.querySelector(".operator-approve-all")?.addEventListener("click", async () => {
     await Promise.all(pendingApplications.map((application) => updateApproval(application.id, "approved", true)));
     showToast(`${pendingApplications.length}건을 모두 승인했습니다.`);
@@ -1120,6 +1143,35 @@ async function submitApplication(event) {
   showToast(`대여 신청 ${newApplications.length}건이 접수되었어요. ${mailNotice}`);
 }
 
+function openExtensionDialog(rentalId) {
+  const rental = state.applications.find((entry) => entry.id === rentalId);
+  if (!rental || !["approved", "renting"].includes(rental.status)) return;
+  pendingExtensionRental = rental;
+  const input = elements.extensionDialog.querySelector("#extensionEndDate");
+  input.min = toLocalIso(addDays(new Date(`${rental.endDate}T00:00:00`), 1));
+  input.max = toLocalIso(addDays(new Date(`${rental.endDate}T00:00:00`), 14));
+  input.value = input.min;
+  elements.extensionDialog.querySelector("#extensionCurrentDate").textContent = `${rental.name} · 현재 반납일 ${formatDate(rental.endDate)}`;
+  elements.extensionDialog.querySelector("#extensionError").textContent = "";
+  openDialog(elements.extensionDialog);
+}
+
+function submitExtensionRequest(event) {
+  event.preventDefault();
+  if (!pendingExtensionRental) return;
+  const form = event.currentTarget;
+  const endDate = form.elements.endDate.value;
+  const reason = form.elements.reason.value.trim();
+  const error = form.querySelector("#extensionError");
+  if (!endDate || endDate <= pendingExtensionRental.endDate) { error.textContent = "현재 반납일 이후 날짜를 선택해주세요."; return; }
+  if (datesBetween(pendingExtensionRental.endDate, endDate).some(holidayName)) { error.textContent = "공휴일은 연장 반납일로 선택할 수 없어요."; return; }
+  const requests = readStorage(storageKeys.extensions, []);
+  if (requests.some((entry) => entry.rentalId === pendingExtensionRental.id && entry.status === "pending")) { error.textContent = "이미 연장 신청이 접수되어 있습니다."; return; }
+  requests.unshift({ id: `EXT-${Date.now()}`, rentalId: pendingExtensionRental.id, requesterName: pendingExtensionRental.requesterName, requesterEmail: pendingExtensionRental.requesterEmail, studentNumber: pendingExtensionRental.studentNumber, equipmentName: pendingExtensionRental.name, assetNo: pendingExtensionRental.assetNo, currentEndDate: pendingExtensionRental.endDate, requestedEndDate: endDate, reason, status: "pending", createdAt: new Date().toISOString() });
+  writeStorage(storageKeys.extensions, requests);
+  closeDialog(elements.extensionDialog); pendingExtensionRental = null; renderRentals(); showToast("연장 신청이 접수되었습니다. 운영자 승인 후 반영됩니다.");
+}
+
 function renderRentals() {
   const profile = readStudentProfile();
   if (elements.profileSummary) {
@@ -1153,10 +1205,12 @@ function renderRentals() {
       <div class="rental-detail"><small>대여 기간</small><strong>${formatDate(rental.startDate)} – ${formatDate(rental.endDate)}</strong></div>
       <div class="rental-detail"><small>수령 장소</small><strong>${escapeHtml(rental.location)}</strong></div>
       <span class="status-chip ${rental.status}">${statusLabels[rental.status] || rental.status}</span>
+      ${["approved", "renting"].includes(rental.status) ? `<button class="rental-extension-button" type="button" data-extension-rental="${escapeHtml(rental.id)}">연장 신청</button>` : ""}
       <button class="rental-print-button" type="button" data-print-rental="${escapeHtml(rental.id)}">내역 인쇄</button>
       ${["applied", "신청"].includes(rental.status) ? `<button class="rental-cancel-button" type="button" data-cancel-rental="${escapeHtml(rental.id)}">신청 취소하기</button>` : ""}
     </article>`;
   }).join("");
+  elements.rentalList.querySelectorAll("[data-extension-rental]").forEach((button) => button.addEventListener("click", () => openExtensionDialog(button.dataset.extensionRental)));
   elements.rentalList.querySelectorAll("[data-print-rental]").forEach((button) => button.addEventListener("click", () => printRental(button.dataset.printRental)));
   elements.rentalList.querySelectorAll("[data-cancel-rental]").forEach((button) => button.addEventListener("click", async () => {
     const rental = state.applications.find((entry) => entry.id === button.dataset.cancelRental);
@@ -1254,6 +1308,8 @@ document.querySelector("#rentalConfirmDialog")?.addEventListener("click", (event
     pendingApplicationForm = null;
   }
 });
+document.querySelector("#extensionForm")?.addEventListener("submit", submitExtensionRequest);
+elements.extensionDialog?.addEventListener("click", (event) => { if (event.target.closest(".close-extension")) { pendingExtensionRental = null; closeDialog(elements.extensionDialog); } });
 document.querySelector("#qrButton").addEventListener("click", openQrDialog);
 document.querySelector("#mobileRentButton").addEventListener("click", () => openStudentCheck("equipment"));
 document.querySelector("#mobileReturnButton").addEventListener("click", () => openStudentCheck("return"));
@@ -1261,7 +1317,7 @@ document.querySelector("#qrManualButton").addEventListener("click", () => render
 elements.qrDialog.addEventListener("click", (event) => { if (event.target.closest(".close-qr")) closeDialog(elements.qrDialog); });
 elements.qrDialog.addEventListener("close", () => { if (qrScanner) qrScanner.stop().catch(() => {}); qrScanner = null; });
 
-[elements.detailDialog, elements.basketDialog, elements.returnDialog, elements.authDialog, elements.operatorDialog, elements.qrDialog, elements.rentalConfirmDialog].filter(Boolean).forEach((dialog) => {
+[elements.detailDialog, elements.basketDialog, elements.returnDialog, elements.authDialog, elements.operatorDialog, elements.qrDialog, elements.rentalConfirmDialog, elements.extensionDialog].filter(Boolean).forEach((dialog) => {
   dialog.addEventListener("close", () => document.body.classList.remove("modal-open"));
   dialog.addEventListener("click", (event) => {
     const rect = dialog.getBoundingClientRect();

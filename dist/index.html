@@ -181,6 +181,11 @@
       <div class="confirm-body"><p>선택한 대여 기간과 반납일을 확인하셨나요?</p><div class="confirm-actions"><button class="secondary-button close-confirm" type="button">다시 확인</button><button class="primary-button" id="confirmRentalButton" type="button">확인하고 신청하기</button></div></div>
     </dialog>
 
+    <dialog class="confirm-dialog" id="extensionDialog" aria-labelledby="extensionTitle">
+      <div class="dialog-header"><div><p class="section-kicker">EXTENSION REQUEST</p><h2 id="extensionTitle">대여 연장 신청</h2></div><button class="icon-button close-extension" type="button" aria-label="연장 신청 닫기">×</button></div>
+      <div class="confirm-body"><p id="extensionCurrentDate"></p><form id="extensionForm"><div class="field"><label for="extensionEndDate">희망 반납일</label><input id="extensionEndDate" name="endDate" type="date" required /></div><div class="field"><label for="extensionReason">연장 사유</label><textarea id="extensionReason" name="reason" maxlength="100" placeholder="연장 사유를 입력해주세요" required></textarea></div><p class="form-error" id="extensionError" role="alert"></p><div class="confirm-actions"><button class="secondary-button close-extension" type="button">취소</button><button class="primary-button" type="submit">연장 신청하기</button></div></form></div>
+    </dialog>
+
     <dialog class="operator-dialog" id="operatorDialog" aria-labelledby="operatorTitle">
       <div class="dialog-header">
         <div><p class="section-kicker">OPERATOR CONSOLE</p><h2 id="operatorTitle">운영자 페이지</h2></div>
