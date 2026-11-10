@@ -78,7 +78,7 @@ const fallbackEquipment = [
 let equipment = fallbackEquipment;
 equipment = equipment.map((item) => ({ ...item, maxDays: 14 }));
 let categories = ["전체", ...new Set(equipment.map((item) => item.category))];
-const storageKeys = { cart: "borrowbom-cart-v1", applications: "borrowbom-applications-v1", holidays: "borrowbom-holidays-v1", operatorEquipment: "borrowbom-operator-equipment-v1" };
+const storageKeys = { cart: "borrowbom-cart-v1", applications: "borrowbom-applications-v1", holidays: "borrowbom-holidays-v1", operatorEquipment: "borrowbom-operator-equipment-v1", accounts: "borrowbom-accounts-v1" };
 const persistedOperatorEquipment = readStorage(storageKeys.operatorEquipment, []);
 if (persistedOperatorEquipment.length) {
   equipment = equipment.concat(persistedOperatorEquipment);
@@ -88,8 +88,10 @@ const studentProfileKey = "borrowbom-student-profile-v1";
 const languageKey = "borrowbom-language-v1";
 const themeKey = "borrowbom-theme-v1";
 const operatorEmail = "nammnamm030@ewhain.net";
+const operatorName = "운영자";
+const operatorStudentNumber = "OPERATOR";
 const translations = {
-  ko: { brand: "이화여자대학교 조형예술대학 장비대여", equipment: "장비 찾기", guide: "이용 안내", rentals: "나의 대여", basket: "대여 바구니", return: "반납하기", rent: "대여하기", heroDesc: "필요한 장비를 찾고, 가능한 시간을 확인하고, 바로 빌린다.", search: "장비명, 용도를 검색해보세요", available: "대여 가능만", reset: "필터 초기화", detail: "상세 보기", unavailable: "대여 불가", addCart: "대여 바구니에 담기", cartEmpty: "대여 바구니가 비어 있어요", studentCheck: "학생 확인", rentalStudentCheck: "대여 학생 확인", returnStudentCheck: "반납 학생 확인", name: "이름", studentNumber: "학번", email: "학교 이메일", phone: "전화번호", purpose: "이용 목적", pastRentals: "과거 대여 내역", componentCheck: "구성품을 모두 확인했나요?", languageLabel: "한국어", themeLight: "라이트 모드", themeDark: "나이트 모드" },
+  ko: { brand: "이화여자대학교 조형예술대학 장비대여", equipment: "장비 찾기", guide: "이용 안내", rentals: "나의 대여", basket: "대여 바구니", return: "반납 신청하기", rent: "대여하기", heroDesc: "필요한 장비를 찾고, 가능한 시간을 확인하고, 바로 빌린다.", search: "장비명, 용도를 검색해보세요", available: "대여 가능만", reset: "필터 초기화", detail: "상세 보기", unavailable: "대여 불가", addCart: "대여 바구니에 담기", cartEmpty: "대여 바구니가 비어 있어요", studentCheck: "학생 확인", rentalStudentCheck: "대여 학생 확인", returnStudentCheck: "반납 신청하기", name: "이름", studentNumber: "학번", email: "학교 이메일", phone: "전화번호", purpose: "이용 목적", pastRentals: "과거 대여 내역", componentCheck: "구성품을 모두 확인했나요?", languageLabel: "한국어", themeLight: "라이트 모드", themeDark: "나이트 모드" },
   en: { brand: "Ewha Womans University College of Art Equipment Rental", equipment: "Find equipment", guide: "Guide", rentals: "My rentals", basket: "Rental cart", return: "Return", rent: "Rent", heroDesc: "Find the equipment you need, check availability, and rent it.", search: "Search equipment or use", available: "Available only", reset: "Reset filters", detail: "View details", unavailable: "Unavailable", addCart: "Add to rental cart", cartEmpty: "Your rental cart is empty", studentCheck: "Student check", rentalStudentCheck: "Rental student check", returnStudentCheck: "Return student check", name: "Name", studentNumber: "Student number", email: "School email", phone: "Phone", purpose: "Purpose", pastRentals: "Past rentals", componentCheck: "Have you checked all components?", languageLabel: "English", themeLight: "Light mode", themeDark: "Dark mode" }
 };
 function t(key) { return (translations[state.language] || translations.ko)[key] || translations.ko[key] || key; }
@@ -115,6 +117,8 @@ let returnHistory = [];
 let qrScanner = null;
 let scannedEquipmentId = "";
 let operatorReturnName = "";
+let pendingApplicationForm = null;
+let authMode = "login";
 const koreanHolidays = {
   "2026-01-01": "신정", "2026-02-16": "설날 연휴", "2026-02-17": "설날", "2026-02-18": "설날 연휴",
   "2026-03-01": "삼일절", "2026-03-02": "삼일절 대체공휴일", "2026-05-01": "근로자의 날", "2026-05-05": "어린이날",
@@ -150,7 +154,7 @@ const elements = {
   basketDialog: document.querySelector("#basketDialog"), basketBody: document.querySelector("#basketBody"),
   returnDialog: document.querySelector("#returnDialog"), returnBody: document.querySelector("#returnBody"),
   basketCount: document.querySelector("#basketCount"), rentalList: document.querySelector("#rentalList"),
-  toast: document.querySelector("#toast"), authDialog: document.querySelector("#authDialog"), operatorDialog: document.querySelector("#operatorDialog"), operatorBody: document.querySelector("#operatorBody")
+  toast: document.querySelector("#toast"), authDialog: document.querySelector("#authDialog"), operatorDialog: document.querySelector("#operatorDialog"), operatorBody: document.querySelector("#operatorBody"), profileSummary: document.querySelector("#profileSummary"), rentalConfirmDialog: document.querySelector("#rentalConfirmDialog")
   , qrDialog: document.querySelector("#qrDialog"), qrBody: document.querySelector("#qrBody"), qrReader: document.querySelector("#qrReader"), qrResult: document.querySelector("#qrResult"), qrManualCode: document.querySelector("#qrManualCode")
 };
 
@@ -344,7 +348,7 @@ function renderEquipment() {
   });
 
   elements.grid.innerHTML = filtered.map((item) => `
-    <article class="equipment-card">
+    <article class="equipment-card" data-detail-id="${item.id}" tabindex="0" role="button" aria-label="${escapeHtml(item.name)} ${t("detail")}">
       <div class="card-visual" style="--visual-bg:${item.color}">
         <img class="equipment-photo" src="${imageUrlForEquipment(item)}" alt="${escapeHtml(item.name)} 실제 장비 사진" loading="lazy" />
         <span class="stock-badge ${item.stock === 0 ? "unavailable" : ""}">${item.stock > 0 ? `대여 가능 ${item.stock}개` : "현재 대여 중"}</span>
@@ -358,7 +362,7 @@ function renderEquipment() {
           <span>${item.location}</span>
           <button class="detail-button" type="button" data-detail-id="${item.id}" aria-label="${item.name} ${t("detail")}">${t("detail")} <span aria-hidden="true">→</span></button>
         </div>
-        <button class="card-rent-button" type="button" data-rent-id="${item.id}" ${item.stock === 0 ? "disabled aria-disabled=\"true\"" : ""}>${item.stock === 0 ? t("unavailable") : t("rent")}</button>
+        <button class="card-rent-button" type="button" data-rent-id="${item.id}" ${(item.stock === 0 && item.category !== "카메라") ? "disabled aria-disabled=\"true\"" : ""}>${item.stock === 0 && item.category === "카메라" ? "예약 신청" : item.stock === 0 ? t("unavailable") : t("rent")}</button>
       </div>
     </article>`).join("");
   elements.result.innerHTML = `총 <strong>${filtered.length}개</strong>의 장비`;
@@ -373,6 +377,7 @@ function openDetail(id) {
   const min = toLocalIso(today);
   const max = toLocalIso(addDays(today, 13));
   const defaultEnd = toLocalIso(addDays(today, Math.min(1, item.maxDays - 1)));
+  const canRequest = item.stock > 0 || item.category === "카메라";
   elements.detailContent.innerHTML = `
     <div class="detail-layout">
       <div class="detail-visual" style="--visual-bg:${item.color}"><img class="detail-photo" src="${imageUrlForEquipment(item)}" alt="${escapeHtml(item.name)} 실제 장비 사진" /><span class="detail-symbol" aria-hidden="true">${symbolForCategory(item.category)}</span></div>
@@ -401,7 +406,7 @@ function openDetail(id) {
             <button class="holiday-admin-button" type="button">관리자 휴일 설정</button>
             <p class="form-error" id="dateError" role="alert"></p>
           </div>
-          <button class="primary-button detail-submit" type="submit" ${item.stock === 0 ? "disabled" : ""}>${item.stock === 0 ? t("unavailable") : t("addCart")}</button>
+          <button class="primary-button detail-submit" type="submit" ${canRequest ? "" : "disabled"}>${item.stock === 0 && item.category === "카메라" ? "카메라 예약 신청" : item.stock === 0 ? t("unavailable") : t("addCart")}</button>
         </form>
       </div>
     </div>`;
@@ -468,7 +473,7 @@ function addToCart(event, item) {
   writeStorage(storageKeys.cart, state.cart);
   updateBasketCount();
   closeDialog(elements.detailDialog);
-  showToast(`${item.name}을(를) 대여 바구니에 담았어요.`);
+  showToast(`${item.name}을(를) ${item.stock === 0 && item.category === "카메라" ? "예약 바구니에 담았어요." : "대여 바구니에 담았어요."}`);
 }
 
 function renderBasket() {
@@ -502,11 +507,16 @@ function renderBasket() {
         <p class="form-error" id="purposeError" role="alert"></p>
       </div>
       <div class="basket-summary"><span>신청 장비</span><strong>${items.length}개</strong></div>
-      <button class="primary-button submit-application" type="submit">대여 신청 완료하기</button>
+      <button class="primary-button submit-application" type="submit" disabled>대여 신청 완료하기</button>
       <p class="basket-notice">신청 후 담당자 승인이 필요하며, 결과는 나의 대여에서 확인할 수 있어요.</p>
     </form>`;
   const purpose = elements.basketBody.querySelector("#rentalPurpose");
-  purpose.addEventListener("input", () => { elements.basketBody.querySelector("#purposeCount").textContent = purpose.value.length; });
+  const updateApplicationReadyState = () => {
+    const details = validateStudentFields(applicationForm, false);
+    const ready = details.valid && purpose.value.trim().length > 0;
+    applicationForm.querySelector(".submit-application").disabled = !ready;
+  };
+  purpose.addEventListener("input", () => { elements.basketBody.querySelector("#purposeCount").textContent = purpose.value.length; updateApplicationReadyState(); });
   const applicationForm = elements.basketBody.querySelector("#applicationForm");
   const profile = readStudentProfile();
   if (profile) {
@@ -515,9 +525,10 @@ function renderBasket() {
     applicationForm.elements.requesterEmail.value = profile.email || "";
   }
   [applicationForm.elements.requesterName, applicationForm.elements.requesterPhone, applicationForm.elements.requesterEmail, applicationForm.elements.studentNumber].forEach((field) => {
-    field.addEventListener("input", () => validateStudentFields(applicationForm, true));
-    field.addEventListener("blur", () => validateStudentFields(applicationForm, true));
+    field.addEventListener("input", () => { validateStudentFields(applicationForm, true); updateApplicationReadyState(); });
+    field.addEventListener("blur", () => { validateStudentFields(applicationForm, true); updateApplicationReadyState(); });
   });
+  updateApplicationReadyState();
   applicationForm.addEventListener("submit", submitApplication);
 }
 
@@ -527,9 +538,20 @@ function openStudentCheck(next = "basket") {
   const intro = document.querySelector("#authIntro");
   const submit = form.querySelector("button[type=submit]");
   const isReturn = next === "return";
-  title.textContent = isReturn ? t("returnStudentCheck") : t("rentalStudentCheck");
-  intro.textContent = isReturn ? (state.language === "en" ? "Confirm your identity to view past rentals for return." : "반납할 장비를 확인하려면 이름, 학번, 학교 이메일을 먼저 확인해주세요.") : (state.language === "en" ? "Confirm your name, student number, and school email to start a rental." : "대여 신청을 시작하려면 이름, 학번, 학교 이메일을 확인해주세요.");
-  submit.textContent = isReturn ? (state.language === "en" ? "View past rentals" : "확인하고 반납 내역 보기") : (state.language === "en" ? "Confirm and start rental" : "확인하고 대여 시작하기");
+  const nameField = form.elements.requesterName.closest(".field");
+  const emailField = form.elements.requesterEmail.closest(".field");
+  const passwordField = form.elements.password.closest(".field");
+  const loginMode = authMode === "login";
+  nameField.hidden = false;
+  emailField.hidden = false;
+  form.elements.requesterName.required = authMode === "signup";
+  form.elements.requesterEmail.required = authMode === "signup";
+  title.textContent = authMode === "signup" ? "회원가입" : (isReturn ? t("returnStudentCheck") : t("rentalStudentCheck"));
+  intro.textContent = authMode === "signup" ? "이름·학번·학교 이메일·비밀번호를 등록해주세요." : (isReturn ? "학번과 비밀번호로 로그인하면 반납 신청 내역을 확인할 수 있어요." : "학번과 비밀번호로 로그인해주세요. 운영자는 이름·학번·학교 이메일도 입력해주세요.");
+  submit.textContent = authMode === "signup" ? "회원가입" : "로그인";
+  const modeToggle = document.querySelector("#authModeToggle");
+  if (modeToggle) modeToggle.textContent = authMode === "signup" ? "이미 가입하셨나요? 로그인" : "처음 이용하시나요? 회원가입";
+  passwordField.querySelector("label").firstChild.textContent = "비밀번호 ";
   const labels = form.querySelectorAll("label");
   [t("name"), t("studentNumber"), t("email")].forEach((label, index) => { if (labels[index]) labels[index].firstChild.textContent = label + " "; });
   form.elements.studentNumber.placeholder = state.language === "en" ? "4–20 letters and numbers" : "영문·숫자 4~20자";
@@ -547,20 +569,37 @@ function submitStudentCheck(event) {
   event.preventDefault();
   const form = event.currentTarget;
   const validation = getStudentValidation();
+  const password = String(form.elements.password.value || "");
   const name = validation.validateName(form.elements.requesterName.value);
   const email = validation.validateEmail(form.elements.requesterEmail.value);
   const studentNumber = validation.validateStudentNumber(form.elements.studentNumber.value);
   const error = form.querySelector("#authError");
   const isOperatorLogin = email.value === operatorEmail;
-  const firstError = (isOperatorLogin ? [email] : [name, studentNumber, email]).find((result) => !result.valid);
+  const firstError = (authMode === "login" ? [studentNumber, { valid: password.length >= 4, message: "비밀번호를 4자 이상 입력해주세요." }] : [name, studentNumber, email, { valid: password.length >= 4, message: "비밀번호를 4자 이상 입력해주세요." }]).find((result) => !result.valid);
   if (firstError) { error.textContent = firstError.message; return; }
-  const profile = { name: isOperatorLogin ? "운영자" : name.value, studentNumber: isOperatorLogin ? "OPERATOR" : studentNumber.value, email: email.value };
+  const accounts = readStorage(storageKeys.accounts, []);
+  if (authMode === "signup") {
+    if (accounts.some((account) => account.studentNumber === studentNumber.value)) { error.textContent = "이미 가입된 학번입니다. 로그인해주세요."; return; }
+    accounts.push({ name: name.value, studentNumber: studentNumber.value, email: email.value, password });
+    writeStorage(storageKeys.accounts, accounts);
+    authMode = "login";
+    error.textContent = "회원가입이 완료되었습니다. 이제 로그인해주세요.";
+    openStudentCheck(elements.authDialog.dataset.next || "basket");
+    return;
+  }
+  if (isOperatorLogin) {
+    if (!name.value || !studentNumber.value) { error.textContent = "운영자는 이름과 학번도 입력해야 합니다."; return; }
+    const profile = { name: name.value, studentNumber: studentNumber.value, email: email.value };
+    writeStorage(studentProfileKey, profile);
+    renderRentals(); closeDialog(elements.authDialog); openOperatorDashboard(profile); return;
+  }
+  const account = accounts.find((entry) => entry.studentNumber === studentNumber.value && entry.password === password);
+  if (!account) { error.textContent = "학번 또는 비밀번호가 일치하지 않습니다. 처음 이용한다면 회원가입을 진행해주세요."; return; }
+  const profile = { name: account.name, studentNumber: account.studentNumber, email: account.email };
   writeStorage(studentProfileKey, profile);
   renderRentals();
   closeDialog(elements.authDialog);
-  if (email.value === operatorEmail) {
-    openOperatorDashboard(profile);
-  } else if (elements.authDialog.dataset.next === "basket") {
+  if (elements.authDialog.dataset.next === "basket") {
     renderBasket(); openDialog(elements.basketDialog); showToast("학생 확인이 완료되었습니다. 대여 신청을 시작해주세요.");
   } else if (elements.authDialog.dataset.next === "return") {
     openReturnWorkspace(profile);
@@ -702,7 +741,7 @@ function renderOperatorDashboard(profile) {
   const borrowerRows = applications.length ? applications.map((application) => `<tr class="${isOverdue(application) ? "overdue" : ""}"><td>${escapeHtml(application.requesterName || "-")}</td><td>${escapeHtml(application.requesterEmail || "-")}</td><td>${escapeHtml(application.studentNumber || "-")}</td><td>${escapeHtml(application.name || "-")}</td><td>${escapeHtml(application.startDate || "-")} ~ ${escapeHtml(application.endDate || "-")}</td><td>${escapeHtml(formatRequestTime(application))}</td><td>${isOverdue(application) ? "연체" : escapeHtml(statusLabels[application.status] || application.status || "신청")}</td></tr>`).join("") : `<tr><td colspan="7">현재 대여 신청이 없습니다.</td></tr>`;
   const returnPanel = `<section class="operator-panel"><div class="operator-panel-heading"><div><p class="section-kicker">RETURN CHECK-IN</p><h3>운영자 반납 처리</h3><p>대여자 이름을 검색한 뒤 반납할 장비를 여러 개 선택해 한 번에 처리합니다.</p></div></div><form id="operatorReturnForm" class="operator-return-form"><div class="field"><label for="operatorReturnName">대여자 이름</label><input id="operatorReturnName" placeholder="대여자 이름을 입력하세요" required /></div><button class="primary-button" type="submit">대여 목록 검색</button></form><p class="form-error" id="operatorReturnError" role="alert"></p><div id="operatorReturnCandidates" class="operator-return-candidates"></div></section>`;
   elements.operatorBody.innerHTML = `<div class="operator-summary"><div><span>등록 장비</span><strong>${equipment.length}대</strong></div><div><span>대여 신청</span><strong>${applications.length}건</strong></div><div><span>운영자</span><strong>${escapeHtml(profile.email)}</strong></div></div>
-    <section class="operator-panel"><div class="operator-panel-heading"><div><p class="section-kicker">APPROVALS</p><h3>대여 신청 승인</h3><p>학생이 신청한 대여를 확인한 뒤 승인 또는 거절할 수 있습니다.</p></div></div><div class="approval-list">${approvalCards}</div></section>
+    <section class="operator-panel"><div class="operator-panel-heading"><div><p class="section-kicker">APPROVALS</p><h3>대여 신청 승인</h3><p>학생이 신청한 대여를 확인한 뒤 승인 또는 거절할 수 있습니다.</p></div><button class="primary-button operator-approve-all" type="button" ${pendingApplications.length ? "" : "disabled"}>전체 승인</button></div><div class="approval-list">${approvalCards}</div></section>
     ${returnPanel}
     <section class="operator-panel"><div class="operator-panel-heading"><div><p class="section-kicker">EQUIPMENT STATUS</p><h3>장비 대여 상태 관리</h3><p>카테고리를 선택하거나 장비명·식별번호를 검색해 상태를 변경할 수 있습니다.</p></div></div><div class="inventory-toolbar"><label class="inventory-category-filter" for="operatorInventoryCategory">장비 카테고리<select id="operatorInventoryCategory">${inventoryCategories.map((category) => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`).join("")}</select></label><label class="inventory-search" for="operatorInventorySearch"><span class="sr-only">장비 상태 검색</span><input id="operatorInventorySearch" type="search" placeholder="장비명 또는 식별번호 검색" /></label></div><div class="inventory-status-list">${inventoryRows}</div></section>
     <section class="operator-panel"><div class="operator-panel-heading"><div><p class="section-kicker">ADD EQUIPMENT</p><h3>새 장비 등록</h3><p>식별코드가 <strong>카테고리약어-등록연도-장비번호</strong> 형식으로 자동 부여됩니다. 예: CAM-2026-001</p></div></div>
@@ -761,7 +800,7 @@ function renderOperatorDashboard(profile) {
   };
   elements.operatorBody.querySelector("#operatorInventoryCategory")?.addEventListener("change", filterInventory);
   elements.operatorBody.querySelector("#operatorInventorySearch")?.addEventListener("input", filterInventory);
-  const updateApproval = async (applicationId, nextStatus) => {
+  const updateApproval = async (applicationId, nextStatus, silent = false) => {
     const application = state.applications.find((entry) => entry.id === applicationId);
     if (!application) return;
     const adapter = window.BorrowbomSupabase;
@@ -769,11 +808,15 @@ function renderOperatorDashboard(profile) {
     application.status = nextStatus;
     writeStorage(storageKeys.applications, state.applications);
     renderRentals();
-    renderOperatorDashboard(profile);
-    showToast(nextStatus === "approved" ? "대여 신청을 승인했습니다." : "대여 신청을 거절했습니다.");
+    if (!silent) { renderOperatorDashboard(profile); showToast(nextStatus === "approved" ? "대여 신청을 승인했습니다." : "대여 신청을 거절했습니다."); }
   };
   elements.operatorBody.querySelectorAll("[data-approve-id]").forEach((button) => button.addEventListener("click", () => updateApproval(button.dataset.approveId, "approved")));
   elements.operatorBody.querySelectorAll("[data-reject-id]").forEach((button) => button.addEventListener("click", () => updateApproval(button.dataset.rejectId, "rejected")));
+  elements.operatorBody.querySelector(".operator-approve-all")?.addEventListener("click", async () => {
+    await Promise.all(pendingApplications.map((application) => updateApproval(application.id, "approved", true)));
+    showToast(`${pendingApplications.length}건을 모두 승인했습니다.`);
+    renderOperatorDashboard(profile);
+  });
   const renderOperatorReturnCandidates = (name) => {
     const candidates = state.applications.filter((rental) => (rental.requestType || "대여") === "대여" && rental.requesterName === name && !["returned", "rejected", "cancelled", "반납 완료", "거절", "취소"].includes(rental.status));
     const target = elements.operatorBody.querySelector("#operatorReturnCandidates");
@@ -992,8 +1035,8 @@ async function submitApplication(event) {
   event.preventDefault();
   const purpose = event.currentTarget.elements.purpose.value.trim();
   const error = event.currentTarget.querySelector("#purposeError");
-  if (purpose.length < 5) {
-    error.textContent = "이용 목적을 5자 이상 입력해주세요.";
+  if (!purpose.length) {
+    error.textContent = "이용 목적을 입력해주세요.";
     event.currentTarget.elements.purpose.focus();
     return;
   }
@@ -1005,6 +1048,15 @@ async function submitApplication(event) {
     else if (!studentDetails.studentNumber) event.currentTarget.elements.studentNumber.focus();
     return;
   }
+  if (!event.currentTarget.dataset.confirmed) {
+    pendingApplicationForm = event.currentTarget;
+    const dates = state.cart.map((entry) => `${formatDate(entry.startDate)} ~ ${formatDate(entry.endDate)}`).join(", ");
+    const confirmText = elements.rentalConfirmDialog?.querySelector(".confirm-body p");
+    if (confirmText) confirmText.textContent = `선택한 대여 기간(${dates})과 반납일을 확인하셨나요?`;
+    openDialog(elements.rentalConfirmDialog);
+    return;
+  }
+  delete event.currentTarget.dataset.confirmed;
   const submitButton = event.currentTarget.querySelector(".submit-application");
   submitButton.disabled = true;
   submitButton.textContent = "신청 저장 중…";
@@ -1070,6 +1122,10 @@ async function submitApplication(event) {
 
 function renderRentals() {
   const profile = readStudentProfile();
+  if (elements.profileSummary) {
+    elements.profileSummary.hidden = !profile;
+    elements.profileSummary.innerHTML = profile ? `<strong>현재 로그인</strong><span>${escapeHtml(profile.name || "")} · ${escapeHtml(profile.studentNumber || "")}</span><small>${escapeHtml(profile.email || "")}</small>` : "";
+  }
   if (!profile) {
     elements.rentalList.innerHTML = `<div class="rental-empty">대여 목록을 확인하려면 먼저 대여하기 또는 반납하기에서 학생 확인을 완료해주세요.</div>`;
     return;
@@ -1097,9 +1153,11 @@ function renderRentals() {
       <div class="rental-detail"><small>대여 기간</small><strong>${formatDate(rental.startDate)} – ${formatDate(rental.endDate)}</strong></div>
       <div class="rental-detail"><small>수령 장소</small><strong>${escapeHtml(rental.location)}</strong></div>
       <span class="status-chip ${rental.status}">${statusLabels[rental.status] || rental.status}</span>
+      <button class="rental-print-button" type="button" data-print-rental="${escapeHtml(rental.id)}">내역 인쇄</button>
       ${["applied", "신청"].includes(rental.status) ? `<button class="rental-cancel-button" type="button" data-cancel-rental="${escapeHtml(rental.id)}">신청 취소하기</button>` : ""}
     </article>`;
   }).join("");
+  elements.rentalList.querySelectorAll("[data-print-rental]").forEach((button) => button.addEventListener("click", () => printRental(button.dataset.printRental)));
   elements.rentalList.querySelectorAll("[data-cancel-rental]").forEach((button) => button.addEventListener("click", async () => {
     const rental = state.applications.find((entry) => entry.id === button.dataset.cancelRental);
     if (!rental || !["applied", "신청"].includes(rental.status)) return;
@@ -1115,6 +1173,15 @@ function renderRentals() {
 function updateBasketCount() {
   elements.basketCount.textContent = state.cart.length;
   elements.basketCount.setAttribute("aria-label", `${state.cart.length}개`);
+}
+
+function printRental(id) {
+  const rental = state.applications.find((entry) => entry.id === id);
+  if (!rental) return;
+  const popup = window.open("", "_blank", "width=720,height=760");
+  if (!popup) { showToast("브라우저에서 팝업을 허용해주세요."); return; }
+  popup.document.write(`<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>대여 내역</title><style>body{font-family:Arial,sans-serif;padding:36px;color:#123}h1{color:#00462A;font-size:24px}p{line-height:1.8;border-bottom:1px solid #ddd;padding:10px 0}small{color:#667}</style></head><body><h1>이화여자대학교 조형예술대학 장비대여</h1><p><strong>대여자</strong><br>${escapeHtml(rental.requesterName || "")} · ${escapeHtml(rental.studentNumber || "")}<br><small>${escapeHtml(rental.requesterEmail || "")}</small></p><p><strong>장비</strong><br>${escapeHtml(rental.name)}<br><small>${escapeHtml(rental.assetNo || "")}</small></p><p><strong>대여 기간</strong><br>${formatDate(rental.startDate)} – ${formatDate(rental.endDate)}</p><p><strong>이용 목적</strong><br>${escapeHtml(rental.purpose || "")}</p><p><strong>상태</strong><br>${escapeHtml(statusLabels[rental.status] || rental.status)}</p><script>window.onload=()=>window.print();</script></body></html>`);
+  popup.document.close();
 }
 
 function openDialog(dialog) {
@@ -1137,9 +1204,13 @@ elements.filters.addEventListener("click", (event) => {
 
 elements.grid.addEventListener("click", (event) => {
   const button = event.target.closest("[data-detail-id]");
-  if (button) openDetail(button.dataset.detailId);
   const rentButton = event.target.closest("[data-rent-id]");
-  if (rentButton && !rentButton.disabled) openDetail(rentButton.dataset.rentId);
+  if (rentButton) { if (!rentButton.disabled) openDetail(rentButton.dataset.rentId); return; }
+  if (button) openDetail(button.dataset.detailId);
+});
+elements.grid.addEventListener("keydown", (event) => {
+  const card = event.target.closest(".equipment-card[data-detail-id]");
+  if (card && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); openDetail(card.dataset.detailId); }
 });
 
 elements.search.addEventListener("input", (event) => { state.query = event.target.value; renderEquipment(); });
@@ -1170,6 +1241,19 @@ elements.returnDialog.addEventListener("click", (event) => { if (event.target.cl
 elements.authDialog.addEventListener("click", (event) => { if (event.target.closest(".close-auth")) closeDialog(elements.authDialog); });
 elements.operatorDialog.addEventListener("click", (event) => { if (event.target.closest(".close-operator")) closeDialog(elements.operatorDialog); });
 document.querySelector("#authForm").addEventListener("submit", submitStudentCheck);
+document.querySelector("#authModeToggle")?.addEventListener("click", () => {
+  authMode = authMode === "login" ? "signup" : "login";
+  openStudentCheck(document.querySelector("#authDialog")?.dataset.next || "basket");
+});
+document.querySelector("#rentalConfirmDialog")?.addEventListener("click", (event) => {
+  if (event.target.closest(".close-confirm")) closeDialog(elements.rentalConfirmDialog);
+  if (event.target.closest("#confirmRentalButton") && pendingApplicationForm) {
+    pendingApplicationForm.dataset.confirmed = "true";
+    closeDialog(elements.rentalConfirmDialog);
+    submitApplication({ preventDefault() {}, currentTarget: pendingApplicationForm });
+    pendingApplicationForm = null;
+  }
+});
 document.querySelector("#qrButton").addEventListener("click", openQrDialog);
 document.querySelector("#mobileRentButton").addEventListener("click", () => openStudentCheck("equipment"));
 document.querySelector("#mobileReturnButton").addEventListener("click", () => openStudentCheck("return"));
@@ -1177,7 +1261,7 @@ document.querySelector("#qrManualButton").addEventListener("click", () => render
 elements.qrDialog.addEventListener("click", (event) => { if (event.target.closest(".close-qr")) closeDialog(elements.qrDialog); });
 elements.qrDialog.addEventListener("close", () => { if (qrScanner) qrScanner.stop().catch(() => {}); qrScanner = null; });
 
-[elements.detailDialog, elements.basketDialog, elements.returnDialog, elements.authDialog, elements.operatorDialog, elements.qrDialog].forEach((dialog) => {
+[elements.detailDialog, elements.basketDialog, elements.returnDialog, elements.authDialog, elements.operatorDialog, elements.qrDialog, elements.rentalConfirmDialog].filter(Boolean).forEach((dialog) => {
   dialog.addEventListener("close", () => document.body.classList.remove("modal-open"));
   dialog.addEventListener("click", (event) => {
     const rect = dialog.getBoundingClientRect();

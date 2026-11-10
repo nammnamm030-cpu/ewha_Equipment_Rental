@@ -44,7 +44,7 @@
             <p class="hero-description" id="heroDescription">필요한 장비를 찾고, 가능한 시간을 확인하고, 바로 빌린다.</p>
             <div class="hero-actions">
               <button class="primary-action" id="rentButton" type="button">대여하기 <span aria-hidden="true">→</span></button>
-              <button class="secondary-button hero-return" id="heroReturnButton" type="button">반납하기</button>
+              <button class="secondary-button hero-return" id="heroReturnButton" type="button">반납 신청하기</button>
               <button class="qr-hero-button" id="qrButton" type="button"><svg class="qr-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h3v3h-3zM19 18h2v3h-2zM18 14h3v2h-3z"/></svg> 장비 QR 스캔</button>
               <a class="text-action" href="#guide">처음이신가요? <strong>이용 안내</strong></a>
             </div>
@@ -57,7 +57,7 @@
         <div class="trust-bar" aria-label="서비스 현황">
           <div><strong id="totalEquipment">48</strong><span>대여 장비</span></div>
           <div><strong>6</strong><span>장비 카테고리</span></div>
-          <div><strong>09–18시</strong><span>평일 수령 가능 · 공휴일 불가</span></div>
+          <div><strong>09–17시</strong><span>평일 수령 가능 · 공휴일 불가</span></div>
         </div>
       </section>
 
@@ -124,6 +124,7 @@
         <div class="status-legend" aria-label="대여 상태 안내">
           <span><i class="dot applied"></i> 신청</span><span><i class="dot approved"></i> 승인</span><span><i class="dot renting"></i> 대여 중</span><span><i class="dot returned"></i> 반납 완료</span>
         </div>
+        <div class="profile-summary" id="profileSummary" hidden></div>
         <div class="rental-list" id="rentalList"></div>
       </section>
     </main>
@@ -131,7 +132,7 @@
     <footer>
       <div class="footer-inner">
         <div><a class="brand footer-brand" href="#home"><img class="brand-logo" src="assets/ewha-logo.png" alt="이화여자대학교 로고" /><span class="brand-copy"><strong>이화여자대학교 조형예술대학 장비대여</strong></span></a><p>이화여자대학교 조형예술대학 장비대여 서비스</p></div>
-        <div class="footer-contact"><strong>문의 및 운영</strong><span>평일 09:00–18:00 · 점심 12:00–13:00</span><span>조형예술대학 A동 3층 302호 서양화과사 / 기자재 413호</span></div>
+        <div class="footer-contact"><strong>문의 및 운영</strong><span>평일 09:00–17:00 · 점심 12:00–13:00</span><span>조형예술대학 A동 3층 302호 서양화과사 / 기자재 413호</span></div>
       </div>
       <p class="copyright">© 2026 이화여자대학교 조형예술대학 장비대여</p>
     </footer>
@@ -150,27 +151,34 @@
 
     <dialog class="auth-dialog" id="authDialog" aria-labelledby="authTitle">
       <div class="dialog-header">
-        <div><p class="section-kicker">STUDENT CHECK</p><h2 id="authTitle">학생 확인</h2></div>
+          <div><p class="section-kicker">STUDENT LOGIN</p><h2 id="authTitle">학생 로그인</h2></div>
         <button class="icon-button close-auth" type="button" aria-label="학생 확인 닫기">×</button>
       </div>
       <div class="auth-body">
-        <p class="auth-intro" id="authIntro">대여 신청을 시작하려면 이름, 학번, 학교 이메일을 확인해주세요.</p>
+        <p class="auth-intro" id="authIntro">학번과 비밀번호로 로그인해주세요. 처음 이용한다면 회원가입을 먼저 진행해주세요.</p>
         <form id="authForm" novalidate>
           <div class="field"><label for="authName">이름 <span aria-hidden="true">*</span></label><input id="authName" name="requesterName" type="text" autocomplete="name" required /></div>
           <div class="field"><label for="authStudentNumber">학번 <span aria-hidden="true">*</span></label><input id="authStudentNumber" name="studentNumber" type="text" inputmode="text" pattern="[A-Za-z0-9]{4,20}" minlength="4" maxlength="20" autocomplete="off" placeholder="영문·숫자 4~20자" required /></div>
           <div class="field"><label for="authEmail">학교 이메일 <span aria-hidden="true">*</span></label><input id="authEmail" name="requesterEmail" type="email" inputmode="email" autocomplete="email" placeholder="name@ewhain.net 또는 name@ewha.ac.kr" required /></div>
+          <div class="field"><label for="authPassword">비밀번호 <span aria-hidden="true">*</span></label><input id="authPassword" name="password" type="password" minlength="4" autocomplete="current-password" required /></div>
           <p class="form-error" id="authError" role="alert"></p>
           <button class="primary-button" type="submit">확인하고 대여 시작하기</button>
+          <button class="text-action auth-mode-toggle" id="authModeToggle" type="button">처음 이용하시나요? 회원가입</button>
         </form>
       </div>
     </dialog>
 
     <dialog class="return-dialog" id="returnDialog" aria-labelledby="returnTitle">
       <div class="dialog-header">
-        <div><p class="section-kicker">RETURN EQUIPMENT</p><h2 id="returnTitle">반납하기</h2></div>
+        <div><p class="section-kicker">RETURN REQUEST</p><h2 id="returnTitle">반납 신청하기</h2></div>
         <button class="icon-button close-return" type="button" aria-label="반납 화면 닫기">×</button>
       </div>
       <div class="return-body" id="returnBody"></div>
+    </dialog>
+
+    <dialog class="confirm-dialog" id="rentalConfirmDialog" aria-labelledby="rentalConfirmTitle">
+      <div class="dialog-header"><div><p class="section-kicker">CHECK SCHEDULE</p><h2 id="rentalConfirmTitle">대여 시간을 확인해주세요</h2></div><button class="icon-button close-confirm" type="button" aria-label="확인 창 닫기">×</button></div>
+      <div class="confirm-body"><p>선택한 대여 기간과 반납일을 확인하셨나요?</p><div class="confirm-actions"><button class="secondary-button close-confirm" type="button">다시 확인</button><button class="primary-button" id="confirmRentalButton" type="button">확인하고 신청하기</button></div></div>
     </dialog>
 
     <dialog class="operator-dialog" id="operatorDialog" aria-labelledby="operatorTitle">
@@ -196,7 +204,7 @@
 
     <div class="mobile-sticky-actions" aria-label="빠른 대여·반납">
       <button class="mobile-rent-cta" id="mobileRentButton" type="button">대여하기</button>
-      <button class="mobile-return-cta" id="mobileReturnButton" type="button">반납하기</button>
+      <button class="mobile-return-cta" id="mobileReturnButton" type="button">반납 신청하기</button>
     </div>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
